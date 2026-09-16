@@ -1,8 +1,23 @@
+import { HydrationBoundary,dehydrate, QueryClient } from '@tanstack/react-query'
 import React from 'react'
+import { getDoctors } from './_actions'
+import DoctorsList from '@/components/module/consultation/DoctorList'
 
-export default function ConsultationPage() {
+const ConsultationPage= async()=> {
+  const queryClient = new QueryClient()
+  await queryClient.query({
+    queryKey: ['doctors'],
+    queryFn: getDoctors
+  })
+  
+
   return (
-    <div>ConsultationPage</div>
-  )
+    <HydrationBoundary state={dehydrate(queryClient)}>
+
+      <DoctorsList />
+   </HydrationBoundary>
+   
+  )  
 }
+export default ConsultationPage
 
