@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
+;
 import { logInactions } from "@/app/(commonlayout)/(authgroup)/login/_actions";
 import AppField from "@/components/shared/form/Appfield";
 import AppSubmitButton from "@/components/shared/form/AppsubmitButton";

@@ -16,5 +16,5 @@ export interface Pagination{
 export interface ApiErrorResponse{
     success: boolean,
     message: string,
-    error: string
+    error?: string
 }
