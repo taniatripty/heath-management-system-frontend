@@ -3,11 +3,11 @@
 import { httpClient } from "@/lib/axios/httpClient";
 import { ApiErrorResponse } from "@/types/api.types";
 import { LoginResponse } from "@/types/auth.types";
-import { ILogInpayload, zodloginSchema } from "@/zod/auth.validation";
+import { ILogInpayload,loginZodSchema } from "@/zod/auth.validation";
 export const logInactions = async (
   payLoad: ILogInpayload,
 ): Promise<LoginResponse | ApiErrorResponse> => {
-  const parsepaylod = zodloginSchema.safeParse(payLoad);
+  const parsepaylod = loginZodSchema.safeParse(payLoad);
   if (!parsepaylod.success) {
     const firstError = parsepaylod.error.issues[0].message || "Invalid input";
     return {
