@@ -1,50 +1,7 @@
-"use server";
+"use server"
 
 import { setTokenInCookie } from "@/lib/tokenUtils";
-
-// import { httpClient } from "@/lib/axios/httpClient";
-// import { getCookie } from "@/lib/cookieUtils";
-// import { setTokenInCookie } from "@/lib/tokenUtils";
-// import { ApiErrorResponse } from "@/types/api.types";
-
-// export interface RefreshTokenResponse {
-//   accessToken: string;
-//   refreshToken?: string;
-// }
-
-// export const refreshToken = async (): Promise<
-//   RefreshTokenResponse | ApiErrorResponse
-// > => {
-//   const storedRefreshToken = await getCookie("refreshToken");
-
-//   if (!storedRefreshToken) {
-//     return {
-//       success: false,
-//       message: "Refresh token is not available",
-//     };
-//   }
-
-//   try {
-//     const response = await httpClient.post<RefreshTokenResponse>(
-//       "/auth/refresh-token",
-//       { refreshToken: storedRefreshToken },
-//     );
-//     const nextRefreshToken = response.data.refreshToken ?? storedRefreshToken;
-
-//     await setTokenInCookie("accessToken", response.data.accessToken);
-//     await setTokenInCookie("refreshToken", nextRefreshToken);
-
-//     return {
-//       ...response.data,
-//       refreshToken: nextRefreshToken,
-//     };
-//   } catch (error: unknown) {
-//     return {
-//       success: false,
-//       message: error instanceof Error ? error.message : "Token refresh failed",
-//     };
-//   }
-// };
+import { cookies } from "next/headers";
 
 const BASE_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -87,3 +44,36 @@ export const getNewTokenWithRefreshToken = async (
   }
   
 };
+
+export async function getUserInfo() {
+    try {
+        const cookieStore = await cookies();
+        const accessToken = cookieStore.get("accessToken")?.value;
+
+        if (!accessToken) {
+            return null;
+        }
+
+        const res = await fetch(`${BASE_API_URL}/auth/me`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: `accessToken=${accessToken}`
+            }
+        });
+
+        if (!res.ok) {
+            console.error("Failed to fetch user info:", res.status, res.statusText);
+            return null;
+        }
+
+        const { data } = await res.json();
+
+        return data;
+    } catch (error) {
+        console.error("Error fetching user info:", error);
+        return null;
+    }
+}
+
+
