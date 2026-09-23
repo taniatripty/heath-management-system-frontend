@@ -10,7 +10,7 @@ interface loginParams{
 
 export default async function LoginPage({searchParams}:loginParams) {
   const params=await searchParams
-  const redirectPath=params.redirect || "/"
+  const redirectPath=params.redirect 
 
   return (
     <div>

@@ -41,7 +41,7 @@ export const logInactions= async (payload : ILogInpayload, redirectPath?: string
         }
         else{
              const targetpath=redirectPath && isvalidatedredirectforRole(redirectPath ,role as UserRole)? redirectPath :getDefaultDashboardRoute(role as UserRole)
-             console.log(targetpath)
+             console.log(targetpath, "t")
              redirect(targetpath)
         }
 

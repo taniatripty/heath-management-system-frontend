@@ -56,6 +56,7 @@ export async function getUserInfo() {
 
         const res = await fetch(`${BASE_API_URL}/auth/me`, {
             method: "GET",
+          cache: "no-store",
             headers: {
                 "Content-Type": "application/json",
                 Cookie: `accessToken=${accessToken}`

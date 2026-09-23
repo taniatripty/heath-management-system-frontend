@@ -17,7 +17,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 interface loginFormProps{
-  redirectPath:string
+  redirectPath ?:string
 }
 
 const LoginForm = ({redirectPath}:loginFormProps) => {

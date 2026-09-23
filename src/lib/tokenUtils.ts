@@ -3,15 +3,13 @@
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { setCookie } from "./cookieUtils";
 
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+
 
  const getTokenRemainingTime = (token: string): number => {
   if (!token) return 0;
 
   try {
-    const payload = JWT_ACCESS_SECRET
-      ? (jwt.verify(token, JWT_ACCESS_SECRET) as JwtPayload)
-      : (jwt.decode(token) as JwtPayload | null);
+    const payload = jwt.decode(token) as JwtPayload;
 
     if (
       !payload ||
