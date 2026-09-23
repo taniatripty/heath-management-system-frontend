@@ -32,10 +32,7 @@ export const logInactions= async (payload : ILogInpayload, redirectPath?: string
         await setTokenInCookie("refreshToken", refreshToken);
         await setTokenInCookie("better-auth.session_token", token, 24 * 60 * 60); // 1 day in seconds
 
-        if(!emailVerified){
-            redirect("/verifyEmail")
-
-        }
+      
         if(needPasswordChange){
             redirect(`/resetPass?email=${email}`)
         }
@@ -51,6 +48,10 @@ export const logInactions= async (payload : ILogInpayload, redirectPath?: string
     if(error && typeof error === "object" && "digest" in error && typeof error.digest === "string" && error.digest.startsWith("NEXT_REDIRECT")){
         throw error;
     }
+if (error && error.response && error.response.data.message === "Email not verified") {
+            redirect(`/verifyEmail?email=${payload.email}`);
+        }
+
         return {
             success: false,
             message: `Login failed: ${error.message}`,
