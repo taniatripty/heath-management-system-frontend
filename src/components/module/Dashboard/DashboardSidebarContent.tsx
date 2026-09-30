@@ -7,6 +7,7 @@ import {cn} from "@/lib/utils"
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React from 'react'
+import { getIconComponent } from '@/lib/IconMapper'
 
 interface DashboardSidebarContentProps {
     userInfo : userInfo,
@@ -50,7 +51,7 @@ export default function DashboardSidebarContent({userInfo,navItems,dashboardHome
                 {section.items.map((item, id) => {
                   const isActive = pathname === item.href;
                   // Icon Mapper Function
-                 // const Icon = getIconComponent(item.icon);
+                 const Icon = getIconComponent(item.icon);
 
                   return (
                     <Link
@@ -63,7 +64,7 @@ export default function DashboardSidebarContent({userInfo,navItems,dashboardHome
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                       )}
                     >
-                      {/* <Icon className="w-4 h-4" /> */}
+                      <Icon className="w-4 h-4" />
                       <span>{item.title}</span>
                     </Link>
                   );
