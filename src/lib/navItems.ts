@@ -1,9 +1,6 @@
 
 import { NavSection } from "@/types/dashboard.types";
 import { getDefaultDashboardRoute, UserRole } from "./authUtils";
-import { de } from "date-fns/locale";
-
-
 
 export const getCommonNavItems=(role:UserRole):NavSection[]=>{
     const defaultDashboard=getDefaultDashboardRoute(role)
