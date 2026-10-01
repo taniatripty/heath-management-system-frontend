@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -99,62 +100,68 @@ const NotificationDropdown = () => {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align={"end"} className="w-80">
-        <DropdownMenuLabel className="flex items-center justify-between">
-          <span>Notifications</span>
-          {unreadCount > 0 && (
-            <Badge variant={"secondary"} className="ml-2">
-              {unreadCount} new
-            </Badge>
-          )}
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex items-center justify-between">
+            <span>Notifications</span>
+            {unreadCount > 0 && (
+              <Badge variant={"secondary"} className="ml-2">
+                {unreadCount} new
+              </Badge>
+            )}
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
-        <ScrollArea className="h-75">
-          {MOCK_NOTIFICATIONS.length > 0 ? (
-            MOCK_NOTIFICATIONS.map((notification) => (
-              <DropdownMenuItem
-                key={notification.id}
-                className="flex flex-col items-start gap-2 p-3 cursor-pointer"
-              >
-                <div className="mt-0.5">
-                  {getNotificationIcon(notification.type)}
-                </div>
-
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium leading-none">
-                      {notification.title}
-                    </p>
-                    {!notification.read && (
-                      <div className="h-2 w-2 rounded-full bg-blue-600" />
-                    )}
+        <DropdownMenuGroup>
+          <ScrollArea className="h-75">
+            {MOCK_NOTIFICATIONS.length > 0 ? (
+              MOCK_NOTIFICATIONS.map((notification) => (
+                <DropdownMenuItem
+                  key={notification.id}
+                  className="flex flex-col items-start gap-2 p-3 cursor-pointer"
+                >
+                  <div className="mt-0.5">
+                    {getNotificationIcon(notification.type)}
                   </div>
 
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {notification.message}
-                  </p>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium leading-none">
+                        {notification.title}
+                      </p>
+                      {!notification.read && (
+                        <div className="h-2 w-2 rounded-full bg-blue-600" />
+                      )}
+                    </div>
 
-                  <p className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(notification.timestamp, {
-                      addSuffix: true,
-                    })}
-                  </p>
-                </div>
-              </DropdownMenuItem>
-            ))
-          ) : (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              No notifications
-            </div>
-          )}
-        </ScrollArea>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {notification.message}
+                    </p>
+
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(notification.timestamp, {
+                        addSuffix: true,
+                      })}
+                    </p>
+                  </div>
+                </DropdownMenuItem>
+              ))
+            ) : (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                No notifications
+              </div>
+            )}
+          </ScrollArea>
+        </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem className="text-center justify-center cursor-pointer">
-          View All Notifications
-        </DropdownMenuItem>
+        <DropdownMenuGroup>
+          <DropdownMenuItem className="text-center justify-center cursor-pointer">
+            View All Notifications
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

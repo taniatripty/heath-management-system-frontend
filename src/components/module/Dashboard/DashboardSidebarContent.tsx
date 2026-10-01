@@ -1,27 +1,29 @@
-"use client"
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import { NavSection } from '@/types/dashboard.types'
-import { userInfo } from '@/types/user.types'
-import {cn} from "@/lib/utils"
+"use client";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { NavSection } from "@/types/dashboard.types";
+import { userInfo } from "@/types/user.types";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import React from 'react'
-import { getIconComponent } from '@/lib/IconMapper'
+import { getIconComponent } from "@/lib/IconMapper";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface DashboardSidebarContentProps {
-    userInfo : userInfo,
-    navItems : NavSection[],
-    dashboardHome : string,
-
+  userInfo: userInfo;
+  navItems: NavSection[];
+  dashboardHome: string;
 }
 
+export default function DashboardSidebarContent({
+  userInfo,
+  navItems,
+  dashboardHome,
+}: DashboardSidebarContentProps) {
+  const pathname = usePathname();
 
-export default function DashboardSidebarContent({userInfo,navItems,dashboardHome}:DashboardSidebarContentProps) {
-  const pathname = usePathname()
-    return (
-    <div className="hidden md:flex h-full w-64 flex-col border-r bg-card overflow-y-auto">
+  return (
+    <div className="hidden md:flex h-full w-64 flex-col border-r bg-card">
       {/* Logo / Brand */}
       <div className="flex h-16 items-center border-b px-6">
         <Link href={dashboardHome}>
@@ -29,58 +31,60 @@ export default function DashboardSidebarContent({userInfo,navItems,dashboardHome
         </Link>
       </div>
 
- {/* User Info At Bottom */}
+      {/* Navigation Area */}
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <nav className="space-y-6 p-3">
+            {navItems.map((section, sectionId) => (
+              <div key={sectionId}>
+                {section.title && (
+                  <h4 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {section.title}
+                  </h4>
+                )}
+
+                <div className="space-y-1">
+                  {section.items.map((item, id) => {
+                    const isActive = pathname === item.href;
+                    const Icon = getIconComponent(item.icon);
+
+                    return (
+                      <Link
+                        href={item.href}
+                        key={id}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {sectionId < navItems.length - 1 && (
+                  <Separator className="my-4" />
+                )}
+              </div>
+            ))}
+          </nav>
+        </ScrollArea>
+      </div>
+
+      {/* User Info At Bottom */}
       <div className="border-t px-3 py-4">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <span className="text-sm font-semibold text-primary">
               {userInfo.name.charAt(0).toUpperCase()}
             </span>
           </div>
-           {/* navigation area */}
-           <ScrollArea>
-             <nav className="space-y-6">
-          {navItems.map((section, sectionId) => (
-            <div key={sectionId}>
-              {section.title && (
-                <h4 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {section.title}
-                </h4>
-              )}
 
-              <div className="space-y-1">
-                {section.items.map((item, id) => {
-                  const isActive = pathname === item.href;
-                  // Icon Mapper Function
-                 const Icon = getIconComponent(item.icon);
-
-                  return (
-                    <Link
-                      href={item.href}
-                      key={id}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                        isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                      )}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-
-              {sectionId < navItems.length - 1 && (
-                <Separator className="my-4" />
-              )}
-            </div>
-          ))}
-        </nav>
-           </ScrollArea>
-
-          <div className="flex-1 overflow-hidden">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium truncate">{userInfo.name}</p>
             <p className="text-xs text-muted-foreground capitalize">
               {userInfo.role.toLocaleLowerCase().replace("_", " ")}
@@ -88,7 +92,6 @@ export default function DashboardSidebarContent({userInfo,navItems,dashboardHome
           </div>
         </div>
       </div>
-
-      </div>
-  )
+    </div>
+  );
 }
