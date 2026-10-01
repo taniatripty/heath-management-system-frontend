@@ -92,7 +92,7 @@ export const doctorNavItems:NavSection[]=[
         items: [
             {
                 title: "Appointments",
-                href: "/admin/dashboard/appointmentManagement",
+                href: "/admin/dashboard/appointmentMangement",
                 icon: "Calendar",
             },
             {
