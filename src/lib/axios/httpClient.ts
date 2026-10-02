@@ -44,12 +44,18 @@ const axiosInstance =async () => {
   await tryRefreshToken(accessToken,refreshToken)
  }
 
- const cookieHeader=cookieStore.getAll().map((cookie)=>`${cookie.name}=${cookie.value}`).join(" ;")
+ const cookieHeader = cookieStore
+   .getAll()
+   .map((cookie) => `${cookie.name}=${cookie.value}`)
+   .join("; ");
 
   const instance = axios.create({
     baseURL: API_BASE_URL,
     timeout: 5000,
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+    },
   });
   return instance;
 };

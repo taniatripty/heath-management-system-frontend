@@ -1,8 +1,11 @@
 
 
+import AdminDashboardContent from "@/components/module/Dashboard/AdminDashboardContent";
 import { getDashboardData } from "@/services/dashboard.services";
 import { ApiResponse } from "@/types/api.types";
 import { IAdminDashboardData } from "@/types/dashboard.types";
+
+
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 
 const AdminDashboardPage = async () => {
@@ -22,9 +25,10 @@ const AdminDashboardPage = async () => {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-        {/* <AdminDashboardContent/> */}
+        <AdminDashboardContent></AdminDashboardContent>
     </HydrationBoundary>
   )
 }
 
 export default AdminDashboardPage
+
