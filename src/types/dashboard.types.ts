@@ -8,3 +8,8 @@ export interface NavSection {
     title ?: string,
     items : NavItem[]
 }
+
+export interface PieChartData {
+    status: string,
+    count: number
+}
