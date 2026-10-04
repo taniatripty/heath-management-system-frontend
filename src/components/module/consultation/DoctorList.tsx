@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 
-import { getDoctors } from "@/app/(commonlayout)/consultations/_actions"
+import { getDoctors } from "@/services/doctor.services"
 import { useQuery } from "@tanstack/react-query"
 const DoctorList=()=>{
     const {data}=useQuery({
