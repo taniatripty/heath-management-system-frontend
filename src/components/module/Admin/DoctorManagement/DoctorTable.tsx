@@ -1,29 +1,20 @@
 "use client"
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { getDoctors } from "@/services/doctor.services"
 import { useQuery } from "@tanstack/react-query"
-import {
-  createColumnHelper,
-  tableFeatures,
-  useTable,
-} from "@tanstack/react-table"
+import { createColumnHelper, tableFeatures } from "@tanstack/react-table"
 import type { IDoctor } from "@/types/doctor.types"
+import DataTable from "@/components/shared/table/DataTable"
 
 const doctorFeatures = tableFeatures({})
 const doctorColumnHelper = createColumnHelper<typeof doctorFeatures, IDoctor>()
+
 const doctorColumns = doctorColumnHelper.columns([
   doctorColumnHelper.accessor("name", { header: "Name" }),
+  doctorColumnHelper.accessor("email", { header: "Email" }),
   doctorColumnHelper.accessor("experience", { header: "Experience" }),
+  doctorColumnHelper.accessor("qualification", { header: "Qualification" }),
 ])
-const emptyDoctors: IDoctor[] = []
 
 const DoctorTable = () => {
   const doctorsQuery = useQuery({
@@ -31,66 +22,30 @@ const DoctorTable = () => {
     queryFn: getDoctors,
   })
 
-  const table = useTable({
-    features: doctorFeatures,
-    data: doctorsQuery.data?.data ?? emptyDoctors,
-    columns: doctorColumns,
-  })
+  const handleView = (doctor: IDoctor) => {
+    console.log("View doctor", doctor)
+  }
 
-  const rows = table.getRowModel().rows
+  const handleEdit = (doctor: IDoctor) => {
+    console.log("Edit doctor", doctor)
+  }
+
+  const handleDelete = (doctor: IDoctor) => {
+    console.log("Delete doctor", doctor)
+  }
 
   return (
-    <Table>
-      <TableHeader>
-        {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow key={headerGroup.id}>
-            {headerGroup.headers.map((header) => (
-              <TableHead key={header.id}>
-                {header.isPlaceholder ? null : (
-                  <table.FlexRender header={header} />
-                )}
-              </TableHead>
-            ))}
-          </TableRow>
-        ))}
-      </TableHeader>
-      <TableBody>
-        {doctorsQuery.isPending ? (
-          <TableRow>
-            <TableCell colSpan={doctorColumns.length} className="text-center">
-              Loading doctors...
-            </TableCell>
-          </TableRow>
-        ) : doctorsQuery.isError ? (
-          <TableRow>
-            <TableCell
-              colSpan={doctorColumns.length}
-              className="text-center text-destructive"
-            >
-              {doctorsQuery.error instanceof Error
-                ? doctorsQuery.error.message
-                : "Unable to load doctors."}
-            </TableCell>
-          </TableRow>
-        ) : rows.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={doctorColumns.length} className="text-center">
-              No doctors found.
-            </TableCell>
-          </TableRow>
-        ) : (
-          rows.map((row) => (
-            <TableRow key={row.id}>
-              {row.getAllCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  <table.FlexRender cell={cell} />
-                </TableCell>
-              ))}
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+    <DataTable
+      data={doctorsQuery.data?.data ?? []}
+      columns={doctorColumns}
+      isLoading={doctorsQuery.isPending}
+      emptyMessage="No doctors found."
+      actions={{
+        onView: handleView,
+        onEdit: handleEdit,
+        onDelete: handleDelete,
+      }}
+    />
   )
 }
 
