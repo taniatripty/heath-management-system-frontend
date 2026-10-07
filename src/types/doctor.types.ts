@@ -37,6 +37,6 @@ export interface IDoctor {
   specialties?: Array<{
     specialtyId?: string;
     doctorId?: string;
-    specialty?: ISpecialty;
+    speciatily?: ISpecialty;
   }>;
 }

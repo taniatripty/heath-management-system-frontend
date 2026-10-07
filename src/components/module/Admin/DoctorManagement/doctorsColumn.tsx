@@ -27,6 +27,7 @@ export const doctorColumns: ColumnDef<TableFeatures, IDoctor>[] = [
     header: "Specialties",
     cell: ({ row }) => {
       const specialties = row.original.specialties;
+      console.log(specialties);
 
       if (!specialties || specialties.length === 0) {
         return <span className="text-xs text-muted-foreground">No Specialties</span>;
@@ -34,8 +35,8 @@ export const doctorColumns: ColumnDef<TableFeatures, IDoctor>[] = [
 
       return (
         <div className="flex flex-wrap gap-1">
-          {specialties.map(({ specialty }, index) => {
-            const title = specialty?.title ?? "N/A";
+          {specialties.map(({ speciatily}, index) => {
+            const title = speciatily?.title ?? "N/A";
 
             return (
               <Badge variant="secondary" key={`${title}-${index}`}>
