@@ -5,16 +5,17 @@ import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper, tableFeatures } from "@tanstack/react-table"
 import type { IDoctor } from "@/types/doctor.types"
 import DataTable from "@/components/shared/table/DataTable"
+import { doctorColumns } from "./doctorsColumn"
 
 const doctorFeatures = tableFeatures({})
 const doctorColumnHelper = createColumnHelper<typeof doctorFeatures, IDoctor>()
 
-const doctorColumns = doctorColumnHelper.columns([
-  doctorColumnHelper.accessor("name", { header: "Name" }),
-  doctorColumnHelper.accessor("email", { header: "Email" }),
-  doctorColumnHelper.accessor("experience", { header: "Experience" }),
-  doctorColumnHelper.accessor("qualification", { header: "Qualification" }),
-])
+// const doctorColumns = doctorColumnHelper.columns([
+//   doctorColumnHelper.accessor("name", { header: "Name" }),
+//   doctorColumnHelper.accessor("email", { header: "Email" }),
+//   doctorColumnHelper.accessor("experience", { header: "Experience" }),
+//   doctorColumnHelper.accessor("qualification", { header: "Qualification" }),
+// ])
 
 const DoctorTable = () => {
   const doctorsQuery = useQuery({

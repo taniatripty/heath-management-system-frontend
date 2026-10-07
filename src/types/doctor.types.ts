@@ -9,6 +9,12 @@ export enum UserStatus {
   DELETED = "DELETED",
 }
 
+export interface ISpecialty {
+  id: string;
+  title: string;
+  icon?: string;
+}
+
 export interface IDoctor {
   id: number;
   name: string;
@@ -28,13 +34,9 @@ export interface IDoctor {
   user: {
     status: UserStatus;
   };
-  specialties: Array<{
-    specialtyId: string;
-    doctorId: string;
-    speciatily: {
-      id: string;
-      title: string;
-      icon: string;
-    };
+  specialties?: Array<{
+    specialtyId?: string;
+    doctorId?: string;
+    specialty?: ISpecialty;
   }>;
 }
