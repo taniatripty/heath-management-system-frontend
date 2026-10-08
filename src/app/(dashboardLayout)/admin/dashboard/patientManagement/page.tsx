@@ -1,7 +1,8 @@
 import React from 'react'
 
-export default function PatientManagementPage() {
+export default function PatientManagement () {
   return (
-    <div>PatientManagementPage</div>
+    <div>PatientManagement page </div>
   )
 }
+
