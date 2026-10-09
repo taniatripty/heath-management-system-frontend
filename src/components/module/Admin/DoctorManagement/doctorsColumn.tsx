@@ -23,7 +23,10 @@ export const doctorColumns: ColumnDef<TableFeatures, IDoctor>[] = [
   },
   {
     id: "specialties",
-    accessorKey: "specialties",
+    accessorFn: (doctor) =>
+      doctor.specialties
+        ?.map(({ speciatily }) => speciatily?.title ?? "")
+        .join(", ") ?? "",
     header: "Specialties",
     cell: ({ row }) => {
       const specialties = row.original.specialties;
@@ -111,7 +114,7 @@ export const doctorColumns: ColumnDef<TableFeatures, IDoctor>[] = [
   },
   {
     id: "status",
-    accessorKey: "user.status",
+    accessorFn: (doctor) => doctor.user.status,
     header: "Status",
     cell: ({ row }) => {
       return (

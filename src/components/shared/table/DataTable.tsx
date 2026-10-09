@@ -1,8 +1,11 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type ColumnDef, createSortedRowModel, type RowData, type SortingState, type TableFeatures, rowSortingFeature, tableFeatures, useTable } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { useState, useTransition } from "react";
 
 const rowFeatures = tableFeatures({
     rowSortingFeature,
@@ -29,6 +32,10 @@ interface DataTableProps<TData extends RowData> {
 
 
 const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage, isLoading , sorting} : DataTableProps<TData>) => {
+    const [localSorting, setLocalSorting] = useState<SortingState>([]);
+    const [isSorting, startSortingTransition] = useTransition();
+    const sortingState = sorting?.state ?? localSorting;
+
     const tableColumns: ColumnDef<TableFeatures, TData, unknown>[] = actions ? [...columns,
         {
             id : "actions",
@@ -83,36 +90,39 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
       data,
       columns: tableColumns,
         manualSorting: !!sorting,
-     
-      
       state : {
-        ...(sorting ? { sorting : sorting.state } : {}),
-       
+        sorting: sortingState,
       },
-      onSortingChange : sorting ? 
+      onSortingChange:
         (updater) => {
-          const currentSortingState = sorting.state;
+          const nextSortingState =
+            typeof updater === "function" ? updater(sortingState) : updater;
 
-          const nextSortingState = typeof updater === "function" ? updater(currentSortingState) : updater;
-
-          sorting.onSortingChange(nextSortingState);
-        }
-      : undefined,
-     
-       
-    
-      
+          startSortingTransition(() => {
+            if (sorting) {
+              sorting.onSortingChange(nextSortingState);
+            } else {
+              setLocalSorting(nextSortingState);
+            }
+          });
+        },
     });
 
     const { getHeaderGroups, getRowModel } = table;
 
     return (
       <div className="relative">
-        {isLoading && (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center">
+        {(isLoading || isSorting) && (
+          <div
+            className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center"
+            role="status"
+            aria-live="polite"
+          >
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-              <span className="text-sm text-muted-foreground">Loading...</span>
+              <span className="text-sm text-muted-foreground">
+                {isLoading ? "Loading..." : "Sorting..."}
+              </span>
             </div>
           </div>
         )}
@@ -123,9 +133,19 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
               {getHeaderGroups().map((hg) => (
                 <TableRow key={hg.id}>
                   {hg.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      aria-sort={
+                        header.column.getIsSorted() === "asc"
+                          ? "ascending"
+                          : header.column.getIsSorted() === "desc"
+                            ? "descending"
+                            : "none"
+                      }
+                    >
                       {header.isPlaceholder ? null : header.column.getCanSort() ? (
                         <Button
+                          type="button"
                           variant={"ghost"}
                           className="h-auto cursor-pointer p-0 font-semibold hover:bg-transparent hover:text-inherit focus-visible:ring-0"
                           onClick={header.column.getToggleSortingHandler()}
