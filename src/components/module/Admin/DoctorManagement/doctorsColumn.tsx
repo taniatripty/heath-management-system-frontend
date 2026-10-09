@@ -28,6 +28,7 @@ export const doctorColumns: ColumnDef<TableFeatures, IDoctor>[] = [
         ?.map(({ speciatily }) => speciatily?.title ?? "")
         .join(", ") ?? "",
     header: "Specialties",
+    enableSorting: false,
     cell: ({ row }) => {
       const specialties = row.original.specialties;
       console.log(specialties);
