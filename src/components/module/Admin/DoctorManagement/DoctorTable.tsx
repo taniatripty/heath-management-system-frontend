@@ -29,7 +29,11 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
       data={doctorsQuery.data?.data ?? []}
       columns={doctorColumns}
       isLoading={doctorsQuery.isPending}
-      emptyMessage="No doctors found."
+      emptyMessage={
+        doctorsQuery.isError
+          ? "Unable to load doctors. Please try again."
+          : "No doctors found."
+      }
       actions={{
         onView: handleView,
         onEdit: handleEdit,

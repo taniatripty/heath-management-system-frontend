@@ -14,10 +14,20 @@ import type { IDoctor } from "@/types/doctor.types"
 //   return response
 // }
 
-export const getDoctors = async (queryString = "") => {
+export const getDoctors = async (queryString: string) => {
     try {
         const endpoint = queryString ? `/getdoctor?${queryString}` : "/getdoctor";
         const doctors = await httpClient.get<IDoctor[]>(endpoint);
+
+        // The API may return the list directly instead of wrapping it in { data }.
+        if (Array.isArray(doctors)) {
+            return {
+                success: true,
+                message: "",
+                data: doctors,
+            };
+        }
+
         return doctors;
     } catch (error) {
         console.log("Error fetching doctors:", error);
