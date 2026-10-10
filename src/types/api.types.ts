@@ -6,7 +6,7 @@ export interface ApiResponse<TData> {
 }
 
 export interface Pagination{
-    pages:number,
+    page:number,
     limit:number,
     total:number,
     totalPages:number,

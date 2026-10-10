@@ -3,6 +3,7 @@
 import { httpClient } from "@/lib/axios/httpClient"
 
 import type { IDoctor } from "@/types/doctor.types"
+import type { ApiResponse } from "@/types/api.types"
 
 // export const getDoctors = async (): Promise<ApiResponse<IDoctor[]>> => {
 //   const response = await httpClient.get<IDoctor[]>("/getdoctor")
@@ -14,7 +15,7 @@ import type { IDoctor } from "@/types/doctor.types"
 //   return response
 // }
 
-export const getDoctors = async (queryString: string) => {
+export const getDoctors = async (queryString: string): Promise<ApiResponse<IDoctor[]>> => {
     try {
         const endpoint = queryString ? `/getdoctor?${queryString}` : "/getdoctor";
         const doctors = await httpClient.get<IDoctor[]>(endpoint);

@@ -2,15 +2,21 @@
 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { type ColumnDef, createSortedRowModel, type RowData, type SortingState, type TableFeatures, rowSortingFeature, tableFeatures, useTable } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { type ColumnDef, createPaginatedRowModel, createSortedRowModel, type PaginationState, type RowData, type SortingState, type TableFeatures, rowPaginationFeature, rowSortingFeature, tableFeatures, useTable } from "@tanstack/react-table";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { Pagination } from "@/types/api.types";
 
 const rowFeatures = tableFeatures({
     rowSortingFeature,
+    rowPaginationFeature,
     sortedRowModel: createSortedRowModel(),
+    paginatedRowModel: createPaginatedRowModel(),
 });
+
+const pageSizes = [1, 2, 10, 20, 30, 50];
 
 interface DataTableActions<TData> {
     onView ?: (data : TData) => void;
@@ -24,6 +30,8 @@ interface DataTableProps<TData extends RowData> {
     actions ?: DataTableActions<TData>;
     emptyMessage ?: string;
     isLoading ?: boolean;
+    pagination?: Pagination;
+    onPaginationChange?: (pagination: PaginationState) => void;
      sorting ?: {
       state : SortingState;
       onSortingChange : (state : SortingState) => void;
@@ -31,7 +39,7 @@ interface DataTableProps<TData extends RowData> {
 }
 
 
-const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage, isLoading , sorting} : DataTableProps<TData>) => {
+const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage, isLoading, pagination, onPaginationChange, sorting} : DataTableProps<TData>) => {
     const [localSorting, setLocalSorting] = useState<SortingState>([]);
     const [isSorting, setIsSorting] = useState(false);
     const sortingFrame = useRef<number | null>(null);
@@ -100,10 +108,37 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
       features: rowFeatures,
       data,
       columns: tableColumns,
-        manualSorting: !!sorting,
+      initialState: {
+        pagination: {
+          pageIndex: 0,
+          pageSize: 10,
+        },
+      },
+      manualPagination: !!pagination,
+      pageCount: pagination?.totalPages,
+      manualSorting: !!sorting,
       state : {
         sorting: sortingState,
+        ...(pagination && {
+          pagination: {
+            pageIndex: Math.max(pagination.page - 1, 0),
+            pageSize: pagination.limit,
+          },
+        }),
       },
+      onPaginationChange: onPaginationChange
+        ? (updater) => {
+            const currentPagination: PaginationState = pagination
+              ? {
+                  pageIndex: Math.max(pagination.page - 1, 0),
+                  pageSize: pagination.limit,
+                }
+              : { pageIndex: 0, pageSize: 10 };
+            onPaginationChange(
+              typeof updater === "function" ? updater(currentPagination) : updater,
+            );
+          }
+        : undefined,
       onSortingChange:
         (updater) => {
           const nextSortingState =
@@ -133,6 +168,9 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
     });
 
     const { getHeaderGroups, getRowModel } = table;
+    const pageCount = pagination?.totalPages ?? table.getPageCount();
+    const currentPage = pagination?.page ?? (pageCount > 0 ? table.state.pagination.pageIndex + 1 : 1);
+    const currentPageSize = pagination?.limit ?? table.state.pagination.pageSize;
 
     return (
       <div className="relative">
@@ -211,6 +249,71 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
               )}
             </TableBody>
           </Table>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
+          <div className="flex items-center gap-2">
+            <span id="rows-per-page-label" className="text-sm text-muted-foreground">
+              Rows per page
+            </span>
+            <Select
+              value={String(currentPageSize)}
+              onValueChange={(value) => {
+                if (typeof value === "string") {
+                  if (pagination) {
+                    onPaginationChange?.({
+                      pageIndex: 0,
+                      pageSize: Number(value),
+                    });
+                  } else {
+                    table.setPageSize(Number(value));
+                  }
+                }
+              }}
+            >
+              <SelectTrigger aria-labelledby="rows-per-page-label" className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizes.map((pageSize) => (
+                  <SelectItem key={pageSize} value={String(pageSize)}>
+                    {pageSize}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-end gap-3">
+            <span className="text-sm text-muted-foreground" aria-live="polite">
+              Page {currentPage} of {Math.max(pageCount, 1)}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              Total pages: {pageCount} · Total items: {pagination?.total ?? data.length}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={isLoading || !table.getCanPreviousPage()}
+              aria-label="Go to previous page"
+            >
+              <ArrowLeft aria-hidden="true" />
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={isLoading || !table.getCanNextPage()}
+              aria-label="Go to next page"
+            >
+              Next
+              <ArrowRight aria-hidden="true" />
+            </Button>
+          </div>
         </div>
       </div>
     );
