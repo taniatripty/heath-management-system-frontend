@@ -169,8 +169,17 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
 
     const { getHeaderGroups, getRowModel } = table;
     const pageCount = pagination?.totalPages ?? table.getPageCount();
+    const displayPageCount = Math.max(pageCount, 1);
     const currentPage = pagination?.page ?? (pageCount > 0 ? table.state.pagination.pageIndex + 1 : 1);
     const currentPageSize = pagination?.limit ?? table.state.pagination.pageSize;
+    const pageWindowStart = Math.max(
+      1,
+      Math.min(currentPage - 2, displayPageCount - 4),
+    );
+    const visiblePages = Array.from(
+      { length: Math.min(5, displayPageCount) },
+      (_, index) => pageWindowStart + index,
+    );
 
     return (
       <div className="relative">
@@ -286,7 +295,7 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
 
           <div className="flex items-center justify-end gap-3">
             <span className="text-sm text-muted-foreground" aria-live="polite">
-              Page {currentPage} of {Math.max(pageCount, 1)}
+              Page {currentPage} of {displayPageCount}
             </span>
             <span className="text-sm text-muted-foreground">
               Total pages: {pageCount} · Total items: {pagination?.total ?? data.length}
@@ -302,6 +311,60 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
               <ArrowLeft aria-hidden="true" />
               Previous
             </Button>
+            {pageWindowStart > 1 && (
+              <>
+                <Button
+                  type="button"
+                  variant={currentPage === 1 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => table.setPageIndex(0)}
+                  disabled={isLoading}
+                  aria-label="Go to page 1"
+                  aria-current={currentPage === 1 ? "page" : undefined}
+                >
+                  1
+                </Button>
+                {pageWindowStart > 2 && (
+                  <span className="text-sm text-muted-foreground" aria-hidden="true">
+                    …
+                  </span>
+                )}
+              </>
+            )}
+            {visiblePages.map((page) => (
+              <Button
+                key={page}
+                type="button"
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => table.setPageIndex(page - 1)}
+                disabled={isLoading}
+                aria-label={`Go to page ${page}`}
+                aria-current={currentPage === page ? "page" : undefined}
+              >
+                {page}
+              </Button>
+            ))}
+            {visiblePages[visiblePages.length - 1] < displayPageCount && (
+              <>
+                {visiblePages[visiblePages.length - 1] < displayPageCount - 1 && (
+                  <span className="text-sm text-muted-foreground" aria-hidden="true">
+                    …
+                  </span>
+                )}
+                <Button
+                  type="button"
+                  variant={currentPage === displayPageCount ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => table.setPageIndex(displayPageCount - 1)}
+                  disabled={isLoading}
+                  aria-label={`Go to page ${displayPageCount}`}
+                  aria-current={currentPage === displayPageCount ? "page" : undefined}
+                >
+                  {displayPageCount}
+                </Button>
+              </>
+            )}
             <Button
               type="button"
               variant="outline"
