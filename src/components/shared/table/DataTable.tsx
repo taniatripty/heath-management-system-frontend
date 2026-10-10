@@ -3,10 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type ColumnDef, createPaginatedRowModel, createSortedRowModel, type PaginationState, type RowData, type SortingState, type TableFeatures, rowPaginationFeature, rowSortingFeature, tableFeatures, useTable } from "@tanstack/react-table";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, MoreHorizontal } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, MoreHorizontal, Search, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { Pagination } from "@/types/api.types";
 
 const rowFeatures = tableFeatures({
@@ -17,6 +18,57 @@ const rowFeatures = tableFeatures({
 });
 
 const pageSizes = [1, 2, 10, 20, 30, 50];
+
+interface DataTableSearchProps {
+    searchTerm: string;
+    onSearchChange: (searchTerm: string) => void;
+}
+
+const DataTableSearch = ({ searchTerm, onSearchChange }: DataTableSearchProps) => {
+    const [searchValue, setSearchValue] = useState(searchTerm);
+    const searchInputId = useId();
+
+    useEffect(() => {
+      if (searchValue.trim() === searchTerm) {
+        return;
+      }
+
+      const timeout = setTimeout(() => onSearchChange(searchValue), 700);
+      return () => clearTimeout(timeout);
+    }, [onSearchChange, searchTerm, searchValue]);
+
+    return (
+      <div className="relative mb-4 max-w-sm">
+        <label htmlFor={searchInputId} className="sr-only">
+          Search table
+        </label>
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          id={searchInputId}
+          type="text"
+          value={searchValue}
+          onChange={(event) => setSearchValue(event.target.value)}
+          placeholder="Search..."
+          className="pr-9 pl-9"
+        />
+        {searchValue && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-0 top-0 h-8 w-8"
+            onClick={() => setSearchValue("")}
+            aria-label="Clear search"
+          >
+            <X aria-hidden="true" className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    );
+};
 
 interface DataTableActions<TData> {
     onView ?: (data : TData) => void;
@@ -32,6 +84,8 @@ interface DataTableProps<TData extends RowData> {
     isLoading ?: boolean;
     pagination?: Pagination;
     onPaginationChange?: (pagination: PaginationState) => void;
+    searchTerm?: string;
+    onSearchChange?: (searchTerm: string) => void;
      sorting ?: {
       state : SortingState;
       onSortingChange : (state : SortingState) => void;
@@ -39,7 +93,7 @@ interface DataTableProps<TData extends RowData> {
 }
 
 
-const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage, isLoading, pagination, onPaginationChange, sorting} : DataTableProps<TData>) => {
+const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage, isLoading, pagination, onPaginationChange, searchTerm = "", onSearchChange, sorting} : DataTableProps<TData>) => {
     const [localSorting, setLocalSorting] = useState<SortingState>([]);
     const [isSorting, setIsSorting] = useState(false);
     const sortingFrame = useRef<number | null>(null);
@@ -196,6 +250,14 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
               </span>
             </div>
           </div>
+        )}
+
+        {onSearchChange && (
+          <DataTableSearch
+            key={searchTerm}
+            searchTerm={searchTerm}
+            onSearchChange={onSearchChange}
+          />
         )}
 
         <div className="rounded-lg border">

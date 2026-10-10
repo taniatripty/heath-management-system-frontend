@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { getDoctors } from "@/services/doctor.services"
 import { useQuery } from "@tanstack/react-query"
 import type { IDoctor } from "@/types/doctor.types"
@@ -15,12 +15,36 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
     queryFn: () => getDoctors(queryString),
   })
 
-  const handlePaginationChange = ({ pageIndex, pageSize }: PaginationState) => {
-    const params = new URLSearchParams(queryString)
-    params.set("page", String(pageIndex + 1))
-    params.set("limit", String(pageSize))
-    setQueryString(params.toString())
-  }
+  const handlePaginationChange = useCallback(({ pageIndex, pageSize }: PaginationState) => {
+    setQueryString((currentQueryString) => {
+      const params = new URLSearchParams(currentQueryString)
+      params.set("page", String(pageIndex + 1))
+      params.set("limit", String(pageSize))
+      return params.toString()
+    })
+  }, [])
+
+  const handleSearchChange = useCallback((searchTerm: string) => {
+    const normalizedSearchTerm = searchTerm.trim()
+
+    setQueryString((currentQueryString) => {
+      const params = new URLSearchParams(currentQueryString)
+      const currentSearchTerm = params.get("searchTerm") ?? ""
+
+      if (currentSearchTerm === normalizedSearchTerm && params.get("page") === "1") {
+        return currentQueryString
+      }
+
+      if (normalizedSearchTerm) {
+        params.set("searchTerm", normalizedSearchTerm)
+      } else {
+        params.delete("searchTerm")
+      }
+
+      params.set("page", "1")
+      return params.toString()
+    })
+  }, [])
 
   const handleView = (doctor: IDoctor) => {
     console.log("View doctor", doctor)
@@ -41,6 +65,8 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
       isLoading={doctorsQuery.isFetching}
       pagination={doctorsQuery.data?.meta}
       onPaginationChange={handlePaginationChange}
+      searchTerm={new URLSearchParams(queryString).get("searchTerm") ?? ""}
+      onSearchChange={handleSearchChange}
       emptyMessage={
         doctorsQuery.isError
           ? "Unable to load doctors. Please try again."
