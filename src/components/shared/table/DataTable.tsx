@@ -1,14 +1,109 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type ColumnDef, createPaginatedRowModel, createSortedRowModel, type PaginationState, type RowData, type SortingState, type TableFeatures, rowPaginationFeature, rowSortingFeature, tableFeatures, useTable } from "@tanstack/react-table";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, MoreHorizontal, Search, X } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Pagination } from "@/types/api.types";
+
+export interface DataTableFilterOption {
+    label: string;
+    value: string;
+}
+
+export interface DataTableFilter<TData extends RowData> {
+    id: string;
+    label: string;
+    type: "single" | "multi" | "range";
+    options: DataTableFilterOption[];
+    getValue: (row: TData) => string | number | readonly string[] | null | undefined;
+}
+
+export interface DataTableFilterRange {
+    min?: string;
+    max?: string;
+}
+
+export type DataTableFilterValue = string | string[] | DataTableFilterRange;
+export type DataTableFilterState = Record<string, DataTableFilterValue>;
+
+interface DataTableRangeFilterProps {
+    label: string;
+    value: DataTableFilterRange;
+    onApply: (value: DataTableFilterRange | undefined) => void;
+}
+
+const DataTableRangeFilter = ({ label, value, onApply }: DataTableRangeFilterProps) => {
+    const [minimum, setMinimum] = useState(value.min ?? "");
+    const [maximum, setMaximum] = useState(value.max ?? "");
+    const hasRangeError =
+        minimum !== "" &&
+        maximum !== "" &&
+        Number(minimum) > Number(maximum);
+    const hasChanges = minimum !== (value.min ?? "") || maximum !== (value.max ?? "");
+
+    const applyRange = () => {
+      if (hasRangeError) {
+        return;
+      }
+
+      onApply(
+        minimum || maximum
+          ? {
+              ...(minimum ? { min: minimum } : {}),
+              ...(maximum ? { max: maximum } : {}),
+            }
+          : undefined,
+      );
+    };
+
+    return (
+      <div className="flex w-full flex-col gap-2">
+        <div className="flex w-full flex-wrap items-end gap-2">
+          <label className="flex min-w-0 flex-[1_1_7rem] flex-col gap-1 text-xs text-muted-foreground">
+            Minimum
+            <Input
+              type="number"
+              min="0"
+              value={minimum}
+              onChange={(event) => setMinimum(event.target.value)}
+              aria-label={`Minimum ${label}`}
+            />
+          </label>
+          <label className="flex min-w-0 flex-[1_1_7rem] flex-col gap-1 text-xs text-muted-foreground">
+            Maximum
+            <Input
+              type="number"
+              min="0"
+              value={maximum}
+              onChange={(event) => setMaximum(event.target.value)}
+              aria-label={`Maximum ${label}`}
+            />
+          </label>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full sm:w-auto"
+            disabled={!hasChanges || hasRangeError}
+            onClick={applyRange}
+          >
+            Apply
+          </Button>
+        </div>
+        {hasRangeError && (
+          <p className="text-xs text-destructive" role="alert">
+            Minimum must not exceed maximum.
+          </p>
+        )}
+      </div>
+    );
+};
 
 const rowFeatures = tableFeatures({
     rowSortingFeature,
@@ -18,6 +113,7 @@ const rowFeatures = tableFeatures({
 });
 
 const pageSizes = [1, 2, 10, 20, 30, 50];
+const EMPTY_FILTERS: never[] = [];
 
 interface DataTableSearchProps {
     searchTerm: string;
@@ -33,12 +129,12 @@ const DataTableSearch = ({ searchTerm, onSearchChange }: DataTableSearchProps) =
         return;
       }
 
-      const timeout = setTimeout(() => onSearchChange(searchValue), 700);
+      const timeout = setTimeout(() => onSearchChange(searchValue), 1200);
       return () => clearTimeout(timeout);
     }, [onSearchChange, searchTerm, searchValue]);
 
     return (
-      <div className="relative mb-4 max-w-sm">
+      <div className="relative w-full max-w-sm">
         <label htmlFor={searchInputId} className="sr-only">
           Search table
         </label>
@@ -90,15 +186,125 @@ interface DataTableProps<TData extends RowData> {
       state : SortingState;
       onSortingChange : (state : SortingState) => void;
     };
+     filters?: DataTableFilter<TData>[];
+     filtering?: {
+       state: DataTableFilterState;
+       onFilterChange: (state: DataTableFilterState) => void;
+       debounceMs?: number;
+     };
 }
 
 
-const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage, isLoading, pagination, onPaginationChange, searchTerm = "", onSearchChange, sorting} : DataTableProps<TData>) => {
-    const [localSorting, setLocalSorting] = useState<SortingState>([]);
-    const [isSorting, setIsSorting] = useState(false);
-    const sortingFrame = useRef<number | null>(null);
-    const sortingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const sortingState = sorting?.state ?? localSorting;
+const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage, isLoading, pagination, onPaginationChange, searchTerm = "", onSearchChange, sorting, filters = EMPTY_FILTERS, filtering} : DataTableProps<TData>) => {
+     const [localSorting, setLocalSorting] = useState<SortingState>([]);
+     const [localFilters, setLocalFilters] = useState<DataTableFilterState>({});
+     const [draftFilterState, setDraftFilterState] = useState<DataTableFilterState>({});
+     const [hasDraftFilterState, setHasDraftFilterState] = useState(false);
+     const [isSorting, setIsSorting] = useState(false);
+     const sortingFrame = useRef<number | null>(null);
+     const sortingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+     const sortingState = sorting?.state ?? localSorting;
+     const filterState = filtering
+       ? hasDraftFilterState
+         ? draftFilterState
+         : filtering.state
+       : localFilters;
+
+     const updateFilterState = (nextFilterState: DataTableFilterState) => {
+       if (filtering) {
+         setDraftFilterState(nextFilterState);
+         setHasDraftFilterState(
+           JSON.stringify(nextFilterState) !== JSON.stringify(filtering.state),
+         );
+         return;
+       }
+
+       setLocalFilters(nextFilterState);
+       if (pagination && onPaginationChange) {
+         onPaginationChange({
+           pageIndex: 0,
+           pageSize: pagination.limit,
+         });
+       }
+     };
+
+     const filteredData = useMemo(() => {
+       if (filtering || !filters.length) {
+         return data;
+       }
+
+       return data.filter((row) =>
+           filters.every((filter) => {
+             const selected = filterState[filter.id];
+             const rowValue = filter.getValue(row);
+             if (filter.type === "range") {
+               if (typeof rowValue !== "number") {
+                 return false;
+               }
+               const range = selected && !Array.isArray(selected) && typeof selected === "object"
+                 ? selected
+                 : {};
+               const minimum = range.min === undefined ? undefined : Number(range.min);
+               const maximum = range.max === undefined ? undefined : Number(range.max);
+               return (
+                 (minimum === undefined || rowValue >= minimum) &&
+                 (maximum === undefined || rowValue <= maximum)
+               );
+             }
+
+             if (filter.type === "single") {
+               if (typeof selected !== "string" || !selected) {
+                 return true;
+               }
+               return Array.isArray(rowValue)
+                 ? rowValue.includes(selected)
+                 : rowValue === selected;
+             }
+
+             if (!Array.isArray(selected) || selected.length === 0) {
+               return true;
+             }
+             const rowValues = Array.isArray(rowValue) ? rowValue : [rowValue];
+             return selected.some((value) => rowValues.includes(value));
+           }),
+         );
+     }, [data, filterState, filtering, filters]);
+
+     const activeFilters = filters;
+     const activeFilterSelections = activeFilters.flatMap((filter) => {
+       const selected = filterState[filter.id];
+        const values = filter.type === "range"
+          ? selected && !Array.isArray(selected) && typeof selected === "object"
+            ? ([
+                selected.min && { value: `min:${selected.min}`, label: `Min: ${selected.min}` },
+                selected.max && { value: `max:${selected.max}`, label: `Max: ${selected.max}` },
+              ].filter(Boolean) as { value: string; label: string }[])
+            : []
+          : Array.isArray(selected)
+            ? selected.map((value) => ({ value, label: filter.options.find((option) => option.value === value)?.label ?? value }))
+            : typeof selected === "string" && selected
+              ? [{ value: selected, label: filter.options.find((option) => option.value === selected)?.label ?? selected }]
+              : [];
+
+        return values.map(({ value, label }) => ({ filter, value, label }));
+     });
+
+      const setFilterValue = (filterId: string, value: DataTableFilterValue | undefined) => {
+       const nextFilterState = { ...filterState };
+        if (
+          value === undefined ||
+          (Array.isArray(value) && value.length === 0) ||
+          (typeof value === "object" &&
+            !Array.isArray(value) &&
+            value.min === undefined &&
+            value.max === undefined)
+        ) {
+          delete nextFilterState[filterId];
+        } else {
+          nextFilterState[filterId] = value;
+       }
+       updateFilterState(nextFilterState);
+     };
 
     useEffect(() => () => {
       if (sortingFrame.current !== null) {
@@ -108,6 +314,31 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
         clearTimeout(sortingTimeout.current);
       }
     }, []);
+
+    useEffect(() => {
+      if (
+        !filtering ||
+        !hasDraftFilterState ||
+        JSON.stringify(draftFilterState) === JSON.stringify(filtering.state)
+      ) {
+        return;
+      }
+
+      const timeout = setTimeout(
+        () => {
+          filtering.onFilterChange(draftFilterState);
+          setHasDraftFilterState(false);
+        },
+        filtering.debounceMs ?? 1000,
+      );
+      return () => clearTimeout(timeout);
+    }, [
+      draftFilterState,
+      hasDraftFilterState,
+      filtering?.state,
+      filtering?.onFilterChange,
+      filtering?.debounceMs,
+    ]);
 
     const tableColumns: ColumnDef<TableFeatures, TData, unknown>[] = actions ? [...columns,
         {
@@ -160,7 +391,7 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
 
     const table = useTable({
       features: rowFeatures,
-      data,
+      data: filteredData,
       columns: tableColumns,
       initialState: {
         pagination: {
@@ -252,12 +483,163 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
           </div>
         )}
 
-        {onSearchChange && (
-          <DataTableSearch
-            key={searchTerm}
-            searchTerm={searchTerm}
-            onSearchChange={onSearchChange}
-          />
+        {(onSearchChange || activeFilters.length > 0) && (
+          <div className="mb-4 space-y-3">
+            <div className="flex flex-wrap items-end gap-x-4 gap-y-3 rounded-lg border bg-card p-4">
+              {onSearchChange && (
+                <div className="flex min-w-56 flex-[1_1_15rem] flex-col gap-1.5">
+                  <span className="text-sm font-medium">Search</span>
+                  <DataTableSearch
+                    key={searchTerm}
+                    searchTerm={searchTerm}
+                    onSearchChange={onSearchChange}
+                  />
+                </div>
+              )}
+              {activeFilters.map((filter) => (
+                <fieldset
+                  key={filter.id}
+                  className={`flex min-w-0 flex-col gap-1.5 ${
+                    filter.type === "range"
+                      ? "flex-[1.5_1_20rem] rounded-lg border bg-muted/30 p-3 sm:p-4"
+                      : filter.type === "multi"
+                        ? "flex-[1.2_1_14rem]"
+                        : "flex-[0.8_1_10rem]"
+                  }`}
+                >
+                  <legend className="text-sm font-medium">{filter.label}</legend>
+                  {filter.type === "range" ? (
+                    (() => {
+                      const range = filterState[filter.id] &&
+                        !Array.isArray(filterState[filter.id]) &&
+                        typeof filterState[filter.id] === "object"
+                        ? filterState[filter.id] as DataTableFilterRange
+                        : {};
+                      return (
+                        <DataTableRangeFilter
+                          key={`${filter.id}-${range.min ?? ""}-${range.max ?? ""}`}
+                          label={filter.label}
+                          value={range}
+                          onApply={(nextRange) => setFilterValue(filter.id, nextRange)}
+                        />
+                      );
+                    })()
+                  ) : filter.type === "single" ? (
+                    <Select
+                      value={
+                        typeof filterState[filter.id] === "string"
+                          ? filterState[filter.id] as string
+                          : null
+                      }
+                      onValueChange={(value) => {
+                        if (typeof value === "string") {
+                          setFilterValue(
+                            filter.id,
+                            value || undefined,
+                          );
+                        }
+                      }}
+                    >
+                      <SelectTrigger aria-label={`Select ${filter.label}`} className="w-full">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filter.options.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex flex-wrap gap-x-3 gap-y-2">
+                      {filter.options.map((option) => {
+                        const selectedValues = Array.isArray(filterState[filter.id])
+                          ? filterState[filter.id] as string[]
+                          : [];
+                        const checked = selectedValues.includes(option.value);
+
+                        return (
+                          <label
+                            key={option.value}
+                            className="flex cursor-pointer items-center gap-2 text-sm"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(isChecked) => {
+                                const nextValues = isChecked
+                                  ? [...selectedValues, option.value]
+                                  : selectedValues.filter((value) => value !== option.value);
+                                setFilterValue(filter.id, nextValues);
+                              }}
+                            />
+                            {option.label}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </fieldset>
+              ))}
+              {activeFilterSelections.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => updateFilterState({})}
+                >
+                  Clear all filters
+                </Button>
+              )}
+            </div>
+            {activeFilterSelections.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {activeFilterSelections.map(({ filter, value, label }) => (
+                  <span
+                    key={`${filter.id}-${value}`}
+                    className="inline-flex h-8 items-center gap-1 rounded-lg border bg-muted px-2 text-sm"
+                  >
+                    <span>{filter.label}: {label}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="h-5 w-5"
+                      aria-label={`Remove ${label} ${filter.label} filter`}
+                      onClick={() => {
+                        if (filter.type === "range") {
+                          const range = filterState[filter.id] &&
+                            !Array.isArray(filterState[filter.id]) &&
+                            typeof filterState[filter.id] === "object"
+                            ? filterState[filter.id] as DataTableFilterRange
+                            : {};
+                          const bound = value.startsWith("min:") ? "min" : "max";
+                          const nextRange = { ...range, [bound]: undefined };
+                          setFilterValue(
+                            filter.id,
+                            nextRange.min || nextRange.max ? nextRange : undefined,
+                          );
+                        } else if (filter.type === "multi") {
+                          const selectedValues = Array.isArray(filterState[filter.id])
+                            ? filterState[filter.id] as string[]
+                            : [];
+                          setFilterValue(
+                            filter.id,
+                            selectedValues.filter((selectedValue) => selectedValue !== value),
+                          );
+                        } else {
+                          setFilterValue(filter.id, undefined);
+                        }
+                      }}
+                    >
+                      <X aria-hidden="true" />
+                    </Button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         <div className="rounded-lg border">
