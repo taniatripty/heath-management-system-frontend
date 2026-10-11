@@ -7,9 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type ColumnDef, createPaginatedRowModel, createSortedRowModel, type PaginationState, type RowData, type SortingState, type TableFeatures, rowPaginationFeature, rowSortingFeature, tableFeatures, useTable } from "@tanstack/react-table";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, MoreHorizontal, Search, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, ChevronDown, MoreHorizontal, Search, X } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { Pagination } from "@/types/api.types";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export interface DataTableFilterOption {
     label: string;
@@ -63,9 +69,9 @@ const DataTableRangeFilter = ({ label, value, onApply }: DataTableRangeFilterPro
     };
 
     return (
-      <div className="flex w-full flex-col gap-2">
-        <div className="flex w-full flex-wrap items-end gap-2">
-          <label className="flex min-w-0 flex-[1_1_7rem] flex-col gap-1 text-xs text-muted-foreground">
+      <div className="flex w-full flex-col gap-1">
+        <div className="flex w-full items-end gap-2">
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground">
             Minimum
             <Input
               type="number"
@@ -89,7 +95,7 @@ const DataTableRangeFilter = ({ label, value, onApply }: DataTableRangeFilterPro
             type="button"
             variant="secondary"
             size="sm"
-            className="w-full sm:w-auto"
+            className="shrink-0"
             disabled={!hasChanges || hasRangeError}
             onClick={applyRange}
           >
@@ -175,6 +181,7 @@ interface DataTableActions<TData> {
 interface DataTableProps<TData extends RowData> {
     data : TData[];
     columns : ColumnDef<TableFeatures, TData, unknown>[];
+    toolbarAction?: ReactNode;
     actions ?: DataTableActions<TData>;
     emptyMessage ?: string;
     isLoading ?: boolean;
@@ -195,7 +202,7 @@ interface DataTableProps<TData extends RowData> {
 }
 
 
-const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage, isLoading, pagination, onPaginationChange, searchTerm = "", onSearchChange, sorting, filters = EMPTY_FILTERS, filtering} : DataTableProps<TData>) => {
+const DataTable = <TData extends RowData>({ data, columns, actions, toolbarAction, emptyMessage, isLoading, pagination, onPaginationChange, searchTerm = "", onSearchChange, sorting, filters = EMPTY_FILTERS, filtering} : DataTableProps<TData>) => {
      const [localSorting, setLocalSorting] = useState<SortingState>([]);
      const [localFilters, setLocalFilters] = useState<DataTableFilterState>({});
      const [draftFilterState, setDraftFilterState] = useState<DataTableFilterState>({});
@@ -483,11 +490,11 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
           </div>
         )}
 
-        {(onSearchChange || activeFilters.length > 0) && (
+        {(onSearchChange || activeFilters.length > 0 || toolbarAction) && (
           <div className="mb-4 space-y-3">
-            <div className="flex flex-wrap items-end gap-x-4 gap-y-3 rounded-lg border bg-card p-4">
+            <div className="grid grid-cols-1 gap-3 rounded-lg border bg-card p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-[minmax(14rem,2fr)_minmax(9rem,1fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_auto] xl:items-end">
               {onSearchChange && (
-                <div className="flex min-w-56 flex-[1_1_15rem] flex-col gap-1.5">
+                <div className="flex min-w-0 flex-col gap-1.5">
                   <span className="text-sm font-medium">Search</span>
                   <DataTableSearch
                     key={searchTerm}
@@ -497,96 +504,164 @@ const DataTable = <TData extends RowData>({ data, columns, actions, emptyMessage
                 </div>
               )}
               {activeFilters.map((filter) => (
-                <fieldset
-                  key={filter.id}
-                  className={`flex min-w-0 flex-col gap-1.5 ${
-                    filter.type === "range"
-                      ? "flex-[1.5_1_20rem] rounded-lg border bg-muted/30 p-3 sm:p-4"
-                      : filter.type === "multi"
-                        ? "flex-[1.2_1_14rem]"
-                        : "flex-[0.8_1_10rem]"
-                  }`}
-                >
-                  <legend className="text-sm font-medium">{filter.label}</legend>
-                  {filter.type === "range" ? (
+                <div key={filter.id} className="min-w-0">
+                  {filter.type === "single" ? (
+                    <fieldset className="flex min-w-0 flex-col gap-1.5">
+                      <legend className="text-sm font-medium">{filter.label}</legend>
+                      <Select
+                        value={
+                          typeof filterState[filter.id] === "string"
+                            ? filterState[filter.id] as string
+                            : null
+                        }
+                        onValueChange={(value) => {
+                          if (typeof value === "string") {
+                            setFilterValue(
+                              filter.id,
+                              value || undefined,
+                            );
+                          }
+                        }}
+                      >
+                        <SelectTrigger
+                          aria-label={`Select ${filter.label}`}
+                          className="w-full"
+                        >
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filter.options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </fieldset>
+                  ) : filter.type === "multi" ? (
+                    (() => {
+                      const selectedValues = Array.isArray(filterState[filter.id])
+                        ? filterState[filter.id] as string[]
+                        : [];
+
+                      return (
+                        <Popover>
+                          <PopoverTrigger
+                            render={
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full justify-between"
+                              />
+                            }
+                          >
+                            <span className="truncate">
+                              {filter.label}
+                              {selectedValues.length > 0
+                                ? ` (${selectedValues.length})`
+                                : ""}
+                            </span>
+                            <ChevronDown
+                              aria-hidden="true"
+                              className="size-4 shrink-0"
+                            />
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="start"
+                            className="max-h-72 max-w-[calc(100vw-2rem)] overflow-y-auto sm:w-72"
+                          >
+                            <p className="font-medium">{filter.label}</p>
+                            {filter.options.length > 0 ? (
+                              <div className="flex flex-col gap-2">
+                                {filter.options.map((option) => (
+                                  <label
+                                    key={option.value}
+                                    className="flex cursor-pointer items-center gap-2 text-sm"
+                                  >
+                                    <Checkbox
+                                      checked={selectedValues.includes(option.value)}
+                                      onCheckedChange={(isChecked) => {
+                                        const nextValues = isChecked
+                                          ? [...selectedValues, option.value]
+                                          : selectedValues.filter(
+                                              (value) => value !== option.value,
+                                            );
+                                        setFilterValue(filter.id, nextValues);
+                                      }}
+                                    />
+                                    {option.label}
+                                  </label>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                No options available.
+                              </p>
+                            )}
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    })()
+                  ) : (
                     (() => {
                       const range = filterState[filter.id] &&
                         !Array.isArray(filterState[filter.id]) &&
                         typeof filterState[filter.id] === "object"
                         ? filterState[filter.id] as DataTableFilterRange
                         : {};
+                      const hasRange = Boolean(range.min || range.max);
+
                       return (
-                        <DataTableRangeFilter
-                          key={`${filter.id}-${range.min ?? ""}-${range.max ?? ""}`}
-                          label={filter.label}
-                          value={range}
-                          onApply={(nextRange) => setFilterValue(filter.id, nextRange)}
-                        />
+                        <Popover>
+                          <PopoverTrigger
+                            render={
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full justify-between"
+                              />
+                            }
+                          >
+                            <span className="truncate">
+                              {filter.label}
+                              {hasRange ? " (active)" : ""}
+                            </span>
+                            <ChevronDown
+                              aria-hidden="true"
+                              className="size-4 shrink-0"
+                            />
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="start"
+                            className="max-w-[calc(100vw-2rem)] sm:w-80"
+                          >
+                            <p className="font-medium">{filter.label}</p>
+                            <DataTableRangeFilter
+                              key={`${filter.id}-${range.min ?? ""}-${range.max ?? ""}`}
+                              label={filter.label}
+                              value={range}
+                              onApply={(nextRange) =>
+                                setFilterValue(filter.id, nextRange)
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
                       );
                     })()
-                  ) : filter.type === "single" ? (
-                    <Select
-                      value={
-                        typeof filterState[filter.id] === "string"
-                          ? filterState[filter.id] as string
-                          : null
-                      }
-                      onValueChange={(value) => {
-                        if (typeof value === "string") {
-                          setFilterValue(
-                            filter.id,
-                            value || undefined,
-                          );
-                        }
-                      }}
-                    >
-                      <SelectTrigger aria-label={`Select ${filter.label}`} className="w-full">
-                        <SelectValue placeholder="All" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filter.options.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex flex-wrap gap-x-3 gap-y-2">
-                      {filter.options.map((option) => {
-                        const selectedValues = Array.isArray(filterState[filter.id])
-                          ? filterState[filter.id] as string[]
-                          : [];
-                        const checked = selectedValues.includes(option.value);
-
-                        return (
-                          <label
-                            key={option.value}
-                            className="flex cursor-pointer items-center gap-2 text-sm"
-                          >
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={(isChecked) => {
-                                const nextValues = isChecked
-                                  ? [...selectedValues, option.value]
-                                  : selectedValues.filter((value) => value !== option.value);
-                                setFilterValue(filter.id, nextValues);
-                              }}
-                            />
-                            {option.label}
-                          </label>
-                        );
-                      })}
-                    </div>
                   )}
-                </fieldset>
+                </div>
               ))}
+              {toolbarAction && (
+                <div className="flex min-w-0 items-end sm:col-span-2 xl:col-span-1">
+                  {toolbarAction}
+                </div>
+              )}
               {activeFilterSelections.length > 0 && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="shrink-0"
+                  className="shrink-0 sm:col-span-2 xl:col-span-5 xl:justify-self-end"
                   onClick={() => updateFilterState({})}
                 >
                   Clear all filters

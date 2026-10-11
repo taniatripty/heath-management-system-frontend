@@ -165,18 +165,19 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
-        <Button
-          type="button"
-          onClick={() => setIsCreateDialogOpen(true)}
-        >
-          <Plus aria-hidden="true" />
-          Create doctor
-        </Button>
-      </div>
       <DataTable
         data={doctorsQuery.data?.data ?? []}
         columns={doctorColumns}
+        toolbarAction={
+          <Button
+            type="button"
+            className="w-full"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
+            <Plus aria-hidden="true" />
+            Create doctor
+          </Button>
+        }
         isLoading={doctorsQuery.isFetching}
         pagination={doctorsQuery.data?.meta}
         onPaginationChange={handlePaginationChange}
