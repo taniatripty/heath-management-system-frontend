@@ -3,7 +3,12 @@
 import { httpClient } from "@/lib/axios/httpClient"
 
 import type { ApiErrorResponse, ApiResponse } from "@/types/api.types"
-import type { ICreateDoctorPayload, IDoctor, ISpecialty } from "@/types/doctor.types"
+import type {
+    ICreateDoctorPayload,
+    IDoctor,
+    ISpecialty,
+    IUpdateDoctorPayload,
+} from "@/types/doctor.types"
 import axios from "axios"
 
 // export const getDoctors = async (): Promise<ApiResponse<IDoctor[]>> => {
@@ -63,6 +68,30 @@ export const createDoctor = async (
 
         if (!response.success) {
             throw new Error(response.message || "Unable to create doctor.")
+        }
+
+        return response
+    } catch (error) {
+        if (axios.isAxiosError<ApiErrorResponse>(error)) {
+            throw new Error(error.response?.data?.message || error.message)
+        }
+
+        throw error
+    }
+}
+
+export const updateDoctor = async ({
+    id,
+    payload,
+}: {
+    id: string
+    payload: IUpdateDoctorPayload
+}): Promise<ApiResponse<IDoctor>> => {
+    try {
+        const response = await httpClient.patch<IDoctor>(`/getdoctor/${encodeURIComponent(id)}`, payload)
+
+        if (!response.success) {
+            throw new Error(response.message || "Unable to update doctor.")
         }
 
         return response

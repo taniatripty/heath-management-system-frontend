@@ -59,3 +59,23 @@ export interface ICreateDoctorPayload {
   };
   specialties: string[];
 }
+
+export interface IUpdateDoctorPayload {
+  doctor?: {
+    name?: string;
+    profilePhoto?: string;
+    contactNumber?: string;
+    address?: string;
+    experience?: number;
+    registrationNumber?: string;
+    gender?: Gender;
+    appointmentFee?: number;
+    qualification?: string;
+    currentWorkingPlace?: string;
+    designation?: string;
+  };
+  specialties?: Array<{
+    specialtyId: string;
+    shouldDelete?: boolean;
+  }>;
+}

@@ -14,10 +14,12 @@ import { doctorColumns } from "./doctorsColumn"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import CreateDoctorDialog from "./CreateDoctorDialog"
+import UpdateDoctorDialog from "./UpdateDoctorDialog"
 
 const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => {
   const [queryString, setQueryString] = useState(initialQueryString)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [selectedDoctor, setSelectedDoctor] = useState<IDoctor | null>(null)
   const doctorsQuery = useQuery({
     queryKey: ["doctors", queryString],
     queryFn: () => getDoctors(queryString),
@@ -156,7 +158,7 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
   }
 
   const handleEdit = (doctor: IDoctor) => {
-    console.log("Edit doctor", doctor)
+    setSelectedDoctor(doctor)
   }
 
   const handleDelete = (doctor: IDoctor) => {
@@ -203,6 +205,18 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
       />
+      {selectedDoctor && (
+        <UpdateDoctorDialog
+          key={selectedDoctor.id}
+          doctor={selectedDoctor}
+          open={Boolean(selectedDoctor)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedDoctor(null)
+            }
+          }}
+        />
+      )}
     </>
   )
 }
