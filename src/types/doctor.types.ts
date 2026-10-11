@@ -1,4 +1,4 @@
-enum Gender {
+export enum Gender {
   MALE = "MALE",
   FEMALE = "FEMALE",
   OTHER = "OTHER",
@@ -39,4 +39,23 @@ export interface IDoctor {
     doctorId?: string;
     speciatily?: ISpecialty;
   }>;
+}
+
+export interface ICreateDoctorPayload {
+  password: string;
+  doctor: {
+    name: string;
+    email: string;
+    profilePhoto?: string;
+    contactNumber?: string;
+    address?: string;
+    registrationNumber: string;
+    experience?: number;
+    gender: "MALE" | "FEMALE";
+    appointmentFee: number;
+    qualification: string;
+    currentWorkingPlace: string;
+    designation: string;
+  };
+  specialties: string[];
 }

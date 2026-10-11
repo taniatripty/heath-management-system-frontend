@@ -2,8 +2,9 @@
 
 import { httpClient } from "@/lib/axios/httpClient"
 
-import type { IDoctor } from "@/types/doctor.types"
-import type { ApiResponse } from "@/types/api.types"
+import type { ApiErrorResponse, ApiResponse } from "@/types/api.types"
+import type { ICreateDoctorPayload, IDoctor, ISpecialty } from "@/types/doctor.types"
+import axios from "axios"
 
 // export const getDoctors = async (): Promise<ApiResponse<IDoctor[]>> => {
 //   const response = await httpClient.get<IDoctor[]>("/getdoctor")
@@ -33,5 +34,43 @@ export const getDoctors = async (queryString: string): Promise<ApiResponse<IDoct
     } catch (error) {
         console.log("Error fetching doctors:", error);
         throw error;
+    }
+}
+
+export const getSpecialties = async (): Promise<ApiResponse<ISpecialty[]>> => {
+    try {
+        const response = await httpClient.get<ISpecialty[]>("/specialities")
+
+        if (!response.success) {
+            throw new Error(response.message || "Unable to load specialties.")
+        }
+
+        return response
+    } catch (error) {
+        if (axios.isAxiosError<ApiErrorResponse>(error)) {
+            throw new Error(error.response?.data?.message || error.message)
+        }
+
+        throw error
+    }
+}
+
+export const createDoctor = async (
+    payload: ICreateDoctorPayload,
+): Promise<ApiResponse<IDoctor>> => {
+    try {
+        const response = await httpClient.post<IDoctor>("/manage/createdoctors", payload)
+
+        if (!response.success) {
+            throw new Error(response.message || "Unable to create doctor.")
+        }
+
+        return response
+    } catch (error) {
+        if (axios.isAxiosError<ApiErrorResponse>(error)) {
+            throw new Error(error.response?.data?.message || error.message)
+        }
+
+        throw error
     }
 }

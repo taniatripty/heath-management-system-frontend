@@ -11,9 +11,13 @@ import DataTable, {
   type DataTableFilterState,
 } from "@/components/shared/table/DataTable"
 import { doctorColumns } from "./doctorsColumn"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
+import CreateDoctorDialog from "./CreateDoctorDialog"
 
 const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => {
   const [queryString, setQueryString] = useState(initialQueryString)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const doctorsQuery = useQuery({
     queryKey: ["doctors", queryString],
     queryFn: () => getDoctors(queryString),
@@ -160,30 +164,45 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
   }
 
   return (
-    <DataTable
-      data={doctorsQuery.data?.data ?? []}
-      columns={doctorColumns}
-      isLoading={doctorsQuery.isFetching}
-      pagination={doctorsQuery.data?.meta}
-      onPaginationChange={handlePaginationChange}
-      searchTerm={new URLSearchParams(queryString).get("searchTerm") ?? ""}
-      onSearchChange={handleSearchChange}
-      filters={doctorFilters}
-      filtering={{
-        state: filterState,
-        onFilterChange: handleFilterChange,
-      }}
-      emptyMessage={
-        doctorsQuery.isError
-          ? "Unable to load doctors. Please try again."
-          : "No doctors found."
-      }
-      actions={{
-        onView: handleView,
-        onEdit: handleEdit,
-        onDelete: handleDelete,
-      }}
-    />
+    <>
+      <div className="mb-4 flex justify-end">
+        <Button
+          type="button"
+          onClick={() => setIsCreateDialogOpen(true)}
+        >
+          <Plus aria-hidden="true" />
+          Create doctor
+        </Button>
+      </div>
+      <DataTable
+        data={doctorsQuery.data?.data ?? []}
+        columns={doctorColumns}
+        isLoading={doctorsQuery.isFetching}
+        pagination={doctorsQuery.data?.meta}
+        onPaginationChange={handlePaginationChange}
+        searchTerm={new URLSearchParams(queryString).get("searchTerm") ?? ""}
+        onSearchChange={handleSearchChange}
+        filters={doctorFilters}
+        filtering={{
+          state: filterState,
+          onFilterChange: handleFilterChange,
+        }}
+        emptyMessage={
+          doctorsQuery.isError
+            ? "Unable to load doctors. Please try again."
+            : "No doctors found."
+        }
+        actions={{
+          onView: handleView,
+          onEdit: handleEdit,
+          onDelete: handleDelete,
+        }}
+      />
+      <CreateDoctorDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
+    </>
   )
 }
 
