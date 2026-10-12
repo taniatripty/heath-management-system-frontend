@@ -13,6 +13,13 @@ export interface ISchedule {
   }> | null
 }
 
+export interface IDoctorSchedule {
+  doctorId: number | string
+  scheduleId: string
+  isBooked: boolean
+  schedule: ISchedule | null
+}
+
 export interface ISchedulePayload {
   startDate: string
   endDate: string
