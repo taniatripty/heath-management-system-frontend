@@ -1,15 +1,15 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { deleteDoctor, getDoctors } from "@/services/doctor.services"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { IDoctor } from "@/types/doctor.types"
-import type { PaginationState } from "@tanstack/react-table"
-import DataTable, {
-  type DataTableFilter,
-  type DataTableFilterRange,
-  type DataTableFilterState,
-} from "@/components/shared/table/DataTable"
+import DataTable from "@/components/shared/table/DataTable"
+import type { DataTableFilter } from "@/components/shared/table/data-table.types"
+import {
+  useDataTableQueryState,
+  type DataTableQueryFilter,
+} from "@/components/shared/table/useDataTableQueryState"
 import { doctorColumns } from "./doctorsColumn"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
@@ -28,9 +28,31 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
+const doctorQueryFilters: DataTableQueryFilter[] = [
+  { id: "gender", type: "single", queryKey: "gender" },
+  {
+    id: "specialties",
+    type: "multi",
+    queryKey: "specialties.speciatily.title",
+  },
+  {
+    id: "appointmentFee",
+    type: "range",
+    minQueryKey: "appointmentFee[gte]",
+    maxQueryKey: "appointmentFee[lte]",
+  },
+]
+
 const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => {
   const queryClient = useQueryClient()
-  const [queryString, setQueryString] = useState(initialQueryString)
+  const {
+    queryString,
+    searchTerm,
+    filterState,
+    onPaginationChange,
+    onSearchChange,
+    onFilterChange,
+  } = useDataTableQueryState(initialQueryString, doctorQueryFilters)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedDoctor, setSelectedDoctor] = useState<IDoctor | null>(null)
   const [doctorToView, setDoctorToView] = useState<IDoctor | null>(null)
@@ -97,90 +119,6 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
     ]
   }, [doctorsQuery.data?.data])
 
-  const filterState = useMemo<DataTableFilterState>(() => {
-    const params = new URLSearchParams(queryString)
-    const gender = params.get("gender")
-    const specialties = params.getAll("specialties.speciatily.title")
-    const minimumFee = params.get("appointmentFee[gte]")
-    const maximumFee = params.get("appointmentFee[lte]")
-    const appointmentFee: DataTableFilterRange = {
-      ...(minimumFee ? { min: minimumFee } : {}),
-      ...(maximumFee ? { max: maximumFee } : {}),
-    }
-
-    return {
-      ...(gender ? { gender } : {}),
-      ...(specialties.length ? { specialties } : {}),
-      ...(minimumFee || maximumFee ? { appointmentFee } : {}),
-    }
-  }, [queryString])
-
-  const handlePaginationChange = useCallback(({ pageIndex, pageSize }: PaginationState) => {
-    setQueryString((currentQueryString) => {
-      const params = new URLSearchParams(currentQueryString)
-      params.set("page", String(pageIndex + 1))
-      params.set("limit", String(pageSize))
-      return params.toString()
-    })
-  }, [])
-
-  const handleSearchChange = useCallback((searchTerm: string) => {
-    const normalizedSearchTerm = searchTerm.trim()
-
-    setQueryString((currentQueryString) => {
-      const params = new URLSearchParams(currentQueryString)
-      const currentSearchTerm = params.get("searchTerm") ?? ""
-
-      if (currentSearchTerm === normalizedSearchTerm && params.get("page") === "1") {
-        return currentQueryString
-      }
-
-      if (normalizedSearchTerm) {
-        params.set("searchTerm", normalizedSearchTerm)
-      } else {
-        params.delete("searchTerm")
-      }
-
-      params.set("page", "1")
-      return params.toString()
-    })
-  }, [])
-
-  const handleFilterChange = useCallback((filters: DataTableFilterState) => {
-    setQueryString((currentQueryString) => {
-      const params = new URLSearchParams(currentQueryString)
-      params.delete("gender")
-      params.delete("specialties.speciatily.title")
-      params.delete("appointmentFee[gte]")
-      params.delete("appointmentFee[lte]")
-
-      const gender = filters.gender
-      if (typeof gender === "string") {
-        params.set("gender", gender)
-      }
-
-      const specialties = filters.specialties
-      if (Array.isArray(specialties)) {
-        for (const specialty of specialties) {
-          params.append("specialties.speciatily.title", specialty)
-        }
-      }
-
-      const appointmentFee = filters.appointmentFee
-      if (appointmentFee && !Array.isArray(appointmentFee) && typeof appointmentFee === "object") {
-        if (appointmentFee.min) {
-          params.set("appointmentFee[gte]", appointmentFee.min)
-        }
-        if (appointmentFee.max) {
-          params.set("appointmentFee[lte]", appointmentFee.max)
-        }
-      }
-
-      params.set("page", "1")
-      return params.toString()
-    })
-  }, [])
-
   const handleView = (doctor: IDoctor) => {
     setDoctorToView(doctor)
   }
@@ -210,13 +148,13 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
         }
         isLoading={doctorsQuery.isFetching}
         pagination={doctorsQuery.data?.meta}
-        onPaginationChange={handlePaginationChange}
-        searchTerm={new URLSearchParams(queryString).get("searchTerm") ?? ""}
-        onSearchChange={handleSearchChange}
+        onPaginationChange={onPaginationChange}
+        searchTerm={searchTerm}
+        onSearchChange={onSearchChange}
         filters={doctorFilters}
         filtering={{
           state: filterState,
-          onFilterChange: handleFilterChange,
+          onFilterChange,
         }}
         emptyMessage={
           doctorsQuery.isError

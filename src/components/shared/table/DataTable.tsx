@@ -1,115 +1,27 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type ColumnDef, createPaginatedRowModel, createSortedRowModel, type PaginationState, type RowData, type SortingState, type TableFeatures, rowPaginationFeature, rowSortingFeature, tableFeatures, useTable } from "@tanstack/react-table";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, ChevronDown, MoreHorizontal, Search, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { Pagination } from "@/types/api.types";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import DataTableFilters from "@/components/shared/table/DataTableFilters";
+import type {
+  DataTableFilter,
+  DataTableFilterState,
+} from "@/components/shared/table/data-table.types";
 
-export interface DataTableFilterOption {
-    label: string;
-    value: string;
-}
-
-export interface DataTableFilter<TData extends RowData> {
-    id: string;
-    label: string;
-    type: "single" | "multi" | "range";
-    options: DataTableFilterOption[];
-    getValue: (row: TData) => string | number | readonly string[] | null | undefined;
-}
-
-export interface DataTableFilterRange {
-    min?: string;
-    max?: string;
-}
-
-export type DataTableFilterValue = string | string[] | DataTableFilterRange;
-export type DataTableFilterState = Record<string, DataTableFilterValue>;
-
-interface DataTableRangeFilterProps {
-    label: string;
-    value: DataTableFilterRange;
-    onApply: (value: DataTableFilterRange | undefined) => void;
-}
-
-const DataTableRangeFilter = ({ label, value, onApply }: DataTableRangeFilterProps) => {
-    const [minimum, setMinimum] = useState(value.min ?? "");
-    const [maximum, setMaximum] = useState(value.max ?? "");
-    const hasRangeError =
-        minimum !== "" &&
-        maximum !== "" &&
-        Number(minimum) > Number(maximum);
-    const hasChanges = minimum !== (value.min ?? "") || maximum !== (value.max ?? "");
-
-    const applyRange = () => {
-      if (hasRangeError) {
-        return;
-      }
-
-      onApply(
-        minimum || maximum
-          ? {
-              ...(minimum ? { min: minimum } : {}),
-              ...(maximum ? { max: maximum } : {}),
-            }
-          : undefined,
-      );
-    };
-
-    return (
-      <div className="flex w-full flex-col gap-1">
-        <div className="flex w-full items-end gap-2">
-          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground">
-            Minimum
-            <Input
-              type="number"
-              min="0"
-              value={minimum}
-              onChange={(event) => setMinimum(event.target.value)}
-              aria-label={`Minimum ${label}`}
-            />
-          </label>
-          <label className="flex min-w-0 flex-[1_1_7rem] flex-col gap-1 text-xs text-muted-foreground">
-            Maximum
-            <Input
-              type="number"
-              min="0"
-              value={maximum}
-              onChange={(event) => setMaximum(event.target.value)}
-              aria-label={`Maximum ${label}`}
-            />
-          </label>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="shrink-0"
-            disabled={!hasChanges || hasRangeError}
-            onClick={applyRange}
-          >
-            Apply
-          </Button>
-        </div>
-        {hasRangeError && (
-          <p className="text-xs text-destructive" role="alert">
-            Minimum must not exceed maximum.
-          </p>
-        )}
-      </div>
-    );
-};
+export type {
+  DataTableFilter,
+  DataTableFilterOption,
+  DataTableFilterRange,
+  DataTableFilterState,
+  DataTableFilterValue,
+} from "@/components/shared/table/data-table.types";
 
 const rowFeatures = tableFeatures({
     rowSortingFeature,
@@ -120,57 +32,6 @@ const rowFeatures = tableFeatures({
 
 const pageSizes = [1, 2, 10, 20, 30, 50];
 const EMPTY_FILTERS: never[] = [];
-
-interface DataTableSearchProps {
-    searchTerm: string;
-    onSearchChange: (searchTerm: string) => void;
-}
-
-const DataTableSearch = ({ searchTerm, onSearchChange }: DataTableSearchProps) => {
-    const [searchValue, setSearchValue] = useState(searchTerm);
-    const searchInputId = useId();
-
-    useEffect(() => {
-      if (searchValue.trim() === searchTerm) {
-        return;
-      }
-
-      const timeout = setTimeout(() => onSearchChange(searchValue), 1200);
-      return () => clearTimeout(timeout);
-    }, [onSearchChange, searchTerm, searchValue]);
-
-    return (
-      <div className="relative w-full max-w-sm">
-        <label htmlFor={searchInputId} className="sr-only">
-          Search table
-        </label>
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          id={searchInputId}
-          type="text"
-          value={searchValue}
-          onChange={(event) => setSearchValue(event.target.value)}
-          placeholder="Search..."
-          className="pr-9 pl-9"
-        />
-        {searchValue && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute right-0 top-0 h-8 w-8"
-            onClick={() => setSearchValue("")}
-            aria-label="Clear search"
-          >
-            <X aria-hidden="true" className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    );
-};
 
 interface DataTableActions<TData> {
     onView ?: (data : TData) => void;
@@ -277,42 +138,6 @@ const DataTable = <TData extends RowData>({ data, columns, actions, toolbarActio
          );
      }, [data, filterState, filtering, filters]);
 
-     const activeFilters = filters;
-     const activeFilterSelections = activeFilters.flatMap((filter) => {
-       const selected = filterState[filter.id];
-        const values = filter.type === "range"
-          ? selected && !Array.isArray(selected) && typeof selected === "object"
-            ? ([
-                selected.min && { value: `min:${selected.min}`, label: `Min: ${selected.min}` },
-                selected.max && { value: `max:${selected.max}`, label: `Max: ${selected.max}` },
-              ].filter(Boolean) as { value: string; label: string }[])
-            : []
-          : Array.isArray(selected)
-            ? selected.map((value) => ({ value, label: filter.options.find((option) => option.value === value)?.label ?? value }))
-            : typeof selected === "string" && selected
-              ? [{ value: selected, label: filter.options.find((option) => option.value === selected)?.label ?? selected }]
-              : [];
-
-        return values.map(({ value, label }) => ({ filter, value, label }));
-     });
-
-      const setFilterValue = (filterId: string, value: DataTableFilterValue | undefined) => {
-       const nextFilterState = { ...filterState };
-        if (
-          value === undefined ||
-          (Array.isArray(value) && value.length === 0) ||
-          (typeof value === "object" &&
-            !Array.isArray(value) &&
-            value.min === undefined &&
-            value.max === undefined)
-        ) {
-          delete nextFilterState[filterId];
-        } else {
-          nextFilterState[filterId] = value;
-       }
-       updateFilterState(nextFilterState);
-     };
-
     useEffect(() => () => {
       if (sortingFrame.current !== null) {
         cancelAnimationFrame(sortingFrame.current);
@@ -365,30 +190,20 @@ const DataTable = <TData extends RowData>({ data, columns, actions, toolbarActio
                         </DropdownMenuTrigger>
 
                         <DropdownMenuContent align="end">
-                            {
-                                actions.onView && (
-                                    <DropdownMenuItem onClick={() => actions.onView?.(rowData)}>
-                                        View
-                                    </DropdownMenuItem>
-                                )
-                            }
-
-                            {
-                                actions.onEdit && (
-                                    <DropdownMenuItem onClick={() => actions.onEdit?.(rowData)}>
-                                        Edit
-                                    </DropdownMenuItem>
-                                )
-                            }
-
-                            {
-                                actions.onDelete && (
-                                    <DropdownMenuItem onClick={() => actions.onDelete?.(rowData)}>
-                                        Delete
-                                    </DropdownMenuItem>
-                                )
-                            }
-
+                            {[
+                              { label: "View", onSelect: actions.onView },
+                              { label: "Edit", onSelect: actions.onEdit },
+                              { label: "Delete", onSelect: actions.onDelete },
+                            ].map(({ label, onSelect }) =>
+                              onSelect ? (
+                                <DropdownMenuItem
+                                  key={label}
+                                  onClick={() => onSelect(rowData)}
+                                >
+                                  {label}
+                                </DropdownMenuItem>
+                              ) : null,
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )
@@ -472,6 +287,20 @@ const DataTable = <TData extends RowData>({ data, columns, actions, toolbarActio
       { length: Math.min(5, displayPageCount) },
       (_, index) => pageWindowStart + index,
     );
+    const renderPageButton = (page: number) => (
+      <Button
+        key={page}
+        type="button"
+        variant={currentPage === page ? "default" : "outline"}
+        size="sm"
+        onClick={() => table.setPageIndex(page - 1)}
+        disabled={isLoading}
+        aria-label={`Go to page ${page}`}
+        aria-current={currentPage === page ? "page" : undefined}
+      >
+        {page}
+      </Button>
+    );
 
     return (
       <div className="relative">
@@ -490,231 +319,15 @@ const DataTable = <TData extends RowData>({ data, columns, actions, toolbarActio
           </div>
         )}
 
-        {(onSearchChange || activeFilters.length > 0 || toolbarAction) && (
-          <div className="mb-4 space-y-3">
-            <div className="grid grid-cols-1 gap-3 rounded-lg border bg-card p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-[minmax(14rem,2fr)_minmax(9rem,1fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_auto] xl:items-end">
-              {onSearchChange && (
-                <div className="flex min-w-0 flex-col gap-1.5">
-                  <span className="text-sm font-medium">Search</span>
-                  <DataTableSearch
-                    key={searchTerm}
-                    searchTerm={searchTerm}
-                    onSearchChange={onSearchChange}
-                  />
-                </div>
-              )}
-              {activeFilters.map((filter) => (
-                <div key={filter.id} className="min-w-0">
-                  {filter.type === "single" ? (
-                    <fieldset className="flex min-w-0 flex-col gap-1.5">
-                      <legend className="text-sm font-medium">{filter.label}</legend>
-                      <Select
-                        value={
-                          typeof filterState[filter.id] === "string"
-                            ? filterState[filter.id] as string
-                            : null
-                        }
-                        onValueChange={(value) => {
-                          if (typeof value === "string") {
-                            setFilterValue(
-                              filter.id,
-                              value || undefined,
-                            );
-                          }
-                        }}
-                      >
-                        <SelectTrigger
-                          aria-label={`Select ${filter.label}`}
-                          className="w-full"
-                        >
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filter.options.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </fieldset>
-                  ) : filter.type === "multi" ? (
-                    (() => {
-                      const selectedValues = Array.isArray(filterState[filter.id])
-                        ? filterState[filter.id] as string[]
-                        : [];
-
-                      return (
-                        <Popover>
-                          <PopoverTrigger
-                            render={
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full justify-between"
-                              />
-                            }
-                          >
-                            <span className="truncate">
-                              {filter.label}
-                              {selectedValues.length > 0
-                                ? ` (${selectedValues.length})`
-                                : ""}
-                            </span>
-                            <ChevronDown
-                              aria-hidden="true"
-                              className="size-4 shrink-0"
-                            />
-                          </PopoverTrigger>
-                          <PopoverContent
-                            align="start"
-                            className="max-h-72 max-w-[calc(100vw-2rem)] overflow-y-auto sm:w-72"
-                          >
-                            <p className="font-medium">{filter.label}</p>
-                            {filter.options.length > 0 ? (
-                              <div className="flex flex-col gap-2">
-                                {filter.options.map((option) => (
-                                  <label
-                                    key={option.value}
-                                    className="flex cursor-pointer items-center gap-2 text-sm"
-                                  >
-                                    <Checkbox
-                                      checked={selectedValues.includes(option.value)}
-                                      onCheckedChange={(isChecked) => {
-                                        const nextValues = isChecked
-                                          ? [...selectedValues, option.value]
-                                          : selectedValues.filter(
-                                              (value) => value !== option.value,
-                                            );
-                                        setFilterValue(filter.id, nextValues);
-                                      }}
-                                    />
-                                    {option.label}
-                                  </label>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-muted-foreground">
-                                No options available.
-                              </p>
-                            )}
-                          </PopoverContent>
-                        </Popover>
-                      );
-                    })()
-                  ) : (
-                    (() => {
-                      const range = filterState[filter.id] &&
-                        !Array.isArray(filterState[filter.id]) &&
-                        typeof filterState[filter.id] === "object"
-                        ? filterState[filter.id] as DataTableFilterRange
-                        : {};
-                      const hasRange = Boolean(range.min || range.max);
-
-                      return (
-                        <Popover>
-                          <PopoverTrigger
-                            render={
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full justify-between"
-                              />
-                            }
-                          >
-                            <span className="truncate">
-                              {filter.label}
-                              {hasRange ? " (active)" : ""}
-                            </span>
-                            <ChevronDown
-                              aria-hidden="true"
-                              className="size-4 shrink-0"
-                            />
-                          </PopoverTrigger>
-                          <PopoverContent
-                            align="start"
-                            className="max-w-[calc(100vw-2rem)] sm:w-80"
-                          >
-                            <p className="font-medium">{filter.label}</p>
-                            <DataTableRangeFilter
-                              key={`${filter.id}-${range.min ?? ""}-${range.max ?? ""}`}
-                              label={filter.label}
-                              value={range}
-                              onApply={(nextRange) =>
-                                setFilterValue(filter.id, nextRange)
-                              }
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      );
-                    })()
-                  )}
-                </div>
-              ))}
-              {toolbarAction && (
-                <div className="flex min-w-0 items-end sm:col-span-2 xl:col-span-1">
-                  {toolbarAction}
-                </div>
-              )}
-              {activeFilterSelections.length > 0 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 sm:col-span-2 xl:col-span-5 xl:justify-self-end"
-                  onClick={() => updateFilterState({})}
-                >
-                  Clear all filters
-                </Button>
-              )}
-            </div>
-            {activeFilterSelections.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                {activeFilterSelections.map(({ filter, value, label }) => (
-                  <span
-                    key={`${filter.id}-${value}`}
-                    className="inline-flex h-8 items-center gap-1 rounded-lg border bg-muted px-2 text-sm"
-                  >
-                    <span>{filter.label}: {label}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
-                      className="h-5 w-5"
-                      aria-label={`Remove ${label} ${filter.label} filter`}
-                      onClick={() => {
-                        if (filter.type === "range") {
-                          const range = filterState[filter.id] &&
-                            !Array.isArray(filterState[filter.id]) &&
-                            typeof filterState[filter.id] === "object"
-                            ? filterState[filter.id] as DataTableFilterRange
-                            : {};
-                          const bound = value.startsWith("min:") ? "min" : "max";
-                          const nextRange = { ...range, [bound]: undefined };
-                          setFilterValue(
-                            filter.id,
-                            nextRange.min || nextRange.max ? nextRange : undefined,
-                          );
-                        } else if (filter.type === "multi") {
-                          const selectedValues = Array.isArray(filterState[filter.id])
-                            ? filterState[filter.id] as string[]
-                            : [];
-                          setFilterValue(
-                            filter.id,
-                            selectedValues.filter((selectedValue) => selectedValue !== value),
-                          );
-                        } else {
-                          setFilterValue(filter.id, undefined);
-                        }
-                      }}
-                    >
-                      <X aria-hidden="true" />
-                    </Button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+        {(onSearchChange || filters.length > 0 || toolbarAction) && (
+          <DataTableFilters
+            filters={filters}
+            state={filterState}
+            onChange={updateFilterState}
+            searchTerm={searchTerm}
+            onSearchChange={onSearchChange}
+            toolbarAction={toolbarAction}
+          />
         )}
 
         <div className="rounded-lg border">
@@ -832,17 +445,7 @@ const DataTable = <TData extends RowData>({ data, columns, actions, toolbarActio
             </Button>
             {pageWindowStart > 1 && (
               <>
-                <Button
-                  type="button"
-                  variant={currentPage === 1 ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => table.setPageIndex(0)}
-                  disabled={isLoading}
-                  aria-label="Go to page 1"
-                  aria-current={currentPage === 1 ? "page" : undefined}
-                >
-                  1
-                </Button>
+                {renderPageButton(1)}
                 {pageWindowStart > 2 && (
                   <span className="text-sm text-muted-foreground" aria-hidden="true">
                     …
@@ -850,20 +453,7 @@ const DataTable = <TData extends RowData>({ data, columns, actions, toolbarActio
                 )}
               </>
             )}
-            {visiblePages.map((page) => (
-              <Button
-                key={page}
-                type="button"
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => table.setPageIndex(page - 1)}
-                disabled={isLoading}
-                aria-label={`Go to page ${page}`}
-                aria-current={currentPage === page ? "page" : undefined}
-              >
-                {page}
-              </Button>
-            ))}
+            {visiblePages.map(renderPageButton)}
             {visiblePages[visiblePages.length - 1] < displayPageCount && (
               <>
                 {visiblePages[visiblePages.length - 1] < displayPageCount - 1 && (
@@ -871,17 +461,7 @@ const DataTable = <TData extends RowData>({ data, columns, actions, toolbarActio
                     …
                   </span>
                 )}
-                <Button
-                  type="button"
-                  variant={currentPage === displayPageCount ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => table.setPageIndex(displayPageCount - 1)}
-                  disabled={isLoading}
-                  aria-label={`Go to page ${displayPageCount}`}
-                  aria-current={currentPage === displayPageCount ? "page" : undefined}
-                >
-                  {displayPageCount}
-                </Button>
+                {renderPageButton(displayPageCount)}
               </>
             )}
             <Button
