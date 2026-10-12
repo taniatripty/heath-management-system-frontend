@@ -41,6 +41,45 @@ export interface IDoctor {
   }>;
 }
 
+export interface IDoctorDetails extends IDoctor {
+  user?: IDoctor["user"] & {
+    id?: number | string;
+    email?: string;
+  };
+  appointment?: Array<{
+    id?: number | string;
+    status?: string;
+    createdAt?: string | Date;
+    patient?: {
+      name?: string;
+      email?: string;
+    };
+    schedule?: {
+      startDate?: string | Date;
+      startTime?: string | Date;
+      endTime?: string | Date;
+    };
+    pescription?: {
+      title?: string;
+      description?: string;
+    } | null;
+  }>;
+  doctorSchedule?: Array<{
+    id?: number | string;
+    schedule?: {
+      startDate?: string | Date;
+      startTime?: string | Date;
+      endTime?: string | Date;
+    } | null;
+  }>;
+  reviews?: Array<{
+    id?: number | string;
+    rating?: number;
+    comment?: string;
+    createdAt?: string | Date;
+  }>;
+}
+
 export interface ICreateDoctorPayload {
   password: string;
   doctor: {

@@ -16,6 +16,7 @@ import { Plus } from "lucide-react"
 import { toast } from "sonner"
 import CreateDoctorDialog from "./CreateDoctorDialog"
 import UpdateDoctorDialog from "./UpdateDoctorDialog"
+import DoctorDetailsDialog from "./DoctorDetailsDialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
   const [queryString, setQueryString] = useState(initialQueryString)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedDoctor, setSelectedDoctor] = useState<IDoctor | null>(null)
+  const [doctorToView, setDoctorToView] = useState<IDoctor | null>(null)
   const [doctorToDelete, setDoctorToDelete] = useState<IDoctor | null>(null)
   const doctorsQuery = useQuery({
     queryKey: ["doctors", queryString],
@@ -180,7 +182,7 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
   }, [])
 
   const handleView = (doctor: IDoctor) => {
-    console.log("View doctor", doctor)
+    setDoctorToView(doctor)
   }
 
   const handleEdit = (doctor: IDoctor) => {
@@ -243,6 +245,15 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
           }}
         />
       )}
+      <DoctorDetailsDialog
+        doctorId={doctorToView?.id ?? null}
+        open={Boolean(doctorToView)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDoctorToView(null)
+          }
+        }}
+      />
       <AlertDialog
         open={Boolean(doctorToDelete)}
         onOpenChange={(open) => {

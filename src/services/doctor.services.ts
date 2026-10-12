@@ -6,6 +6,7 @@ import type { ApiErrorResponse, ApiResponse } from "@/types/api.types"
 import type {
     ICreateDoctorPayload,
     IDoctor,
+    IDoctorDetails,
     ISpecialty,
     IUpdateDoctorPayload,
 } from "@/types/doctor.types"
@@ -39,6 +40,26 @@ export const getDoctors = async (queryString: string): Promise<ApiResponse<IDoct
     } catch (error) {
         console.log("Error fetching doctors:", error);
         throw error;
+    }
+}
+
+export const getDoctorById = async (id: number): Promise<ApiResponse<IDoctorDetails>> => {
+    try {
+        const response = await httpClient.get<IDoctorDetails>(
+            `/getdoctor/${encodeURIComponent(String(id))}`,
+        )
+
+        if (!response.success) {
+            throw new Error(response.message || "Unable to load doctor details.")
+        }
+
+        return response
+    } catch (error) {
+        if (axios.isAxiosError<ApiErrorResponse>(error)) {
+            throw new Error(error.response?.data?.message || error.message)
+        }
+
+        throw error
     }
 }
 
