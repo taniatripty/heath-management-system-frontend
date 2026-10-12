@@ -103,3 +103,23 @@ export const updateDoctor = async ({
         throw error
     }
 }
+
+export const deleteDoctor = async (id: number): Promise<ApiResponse<{ message: string }>> => {
+    try {
+        const response = await httpClient.delete<{ message: string }>(
+            `/getdoctor/${encodeURIComponent(String(id))}`,
+        )
+
+        if (!response.success) {
+            throw new Error(response.message || "Unable to delete doctor.")
+        }
+
+        return response
+    } catch (error) {
+        if (axios.isAxiosError<ApiErrorResponse>(error)) {
+            throw new Error(error.response?.data?.message || error.message)
+        }
+
+        throw error
+    }
+}

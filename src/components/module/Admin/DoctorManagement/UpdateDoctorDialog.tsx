@@ -176,10 +176,10 @@ const UpdateDoctorDialog = ({
           <div className="flex items-start justify-between border-b px-6 py-4">
             <div>
               <Dialog.Title className="text-lg font-semibold">
-                Update doctor
+                Edit doctor
               </Dialog.Title>
               <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-                Update {doctor.name}&apos;s details and specialties.
+                Edit {doctor.name}&apos;s details and specialties.
               </Dialog.Description>
             </div>
             <Button

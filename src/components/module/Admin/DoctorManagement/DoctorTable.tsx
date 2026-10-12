@@ -1,8 +1,8 @@
 "use client"
 
 import { useCallback, useMemo, useState } from "react"
-import { getDoctors } from "@/services/doctor.services"
-import { useQuery } from "@tanstack/react-query"
+import { deleteDoctor, getDoctors } from "@/services/doctor.services"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { IDoctor } from "@/types/doctor.types"
 import type { PaginationState } from "@tanstack/react-table"
 import DataTable, {
@@ -13,16 +13,42 @@ import DataTable, {
 import { doctorColumns } from "./doctorsColumn"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { toast } from "sonner"
 import CreateDoctorDialog from "./CreateDoctorDialog"
 import UpdateDoctorDialog from "./UpdateDoctorDialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => {
+  const queryClient = useQueryClient()
   const [queryString, setQueryString] = useState(initialQueryString)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedDoctor, setSelectedDoctor] = useState<IDoctor | null>(null)
+  const [doctorToDelete, setDoctorToDelete] = useState<IDoctor | null>(null)
   const doctorsQuery = useQuery({
     queryKey: ["doctors", queryString],
     queryFn: () => getDoctors(queryString),
+  })
+  const deleteDoctorMutation = useMutation({
+    mutationFn: deleteDoctor,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["doctors"] })
+      setDoctorToDelete(null)
+      toast.success("Doctor deleted successfully.")
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Unable to delete doctor."
+      toast.error(message)
+    },
   })
   const doctorFilters = useMemo<DataTableFilter<IDoctor>[]>(() => {
     const specialties = new Map<string, string>()
@@ -162,7 +188,7 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
   }
 
   const handleDelete = (doctor: IDoctor) => {
-    console.log("Delete doctor", doctor)
+    setDoctorToDelete(doctor)
   }
 
   return (
@@ -217,6 +243,40 @@ const DoctorTable = ({ initialQueryString }: { initialQueryString: string }) => 
           }}
         />
       )}
+      <AlertDialog
+        open={Boolean(doctorToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !deleteDoctorMutation.isPending) {
+            setDoctorToDelete(null)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete doctor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will deactivate {doctorToDelete?.name ?? "this doctor"} and
+              revoke their active sessions. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteDoctorMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteDoctorMutation.isPending}
+              onClick={() => {
+                if (doctorToDelete) {
+                  deleteDoctorMutation.mutate(doctorToDelete.id)
+                }
+              }}
+            >
+              {deleteDoctorMutation.isPending ? "Deleting..." : "Delete doctor"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
