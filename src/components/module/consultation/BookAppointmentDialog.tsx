@@ -22,10 +22,12 @@ const BookAppointmentDialog = ({
   doctorId,
   doctorName,
   schedules,
+  buttonClassName,
 }: {
   doctorId: string | number
   doctorName: string
   schedules?: DoctorSchedule[]
+  buttonClassName?: string
 }) => {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -92,7 +94,11 @@ const BookAppointmentDialog = ({
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <Button type="button" onClick={() => handleOpenChange(true)}>
+      <Button
+        type="button"
+        className={buttonClassName}
+        onClick={() => handleOpenChange(true)}
+      >
         Book appointment
       </Button>
       <Dialog.Portal>
