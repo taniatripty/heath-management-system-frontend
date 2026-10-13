@@ -103,3 +103,46 @@ export const bookDoctorSchedules = async (
     throw error
   }
 }
+
+export const updateMyDoctorSchedules = async (
+  scheduleIds: Array<{ id: string; shouldDelete: boolean }>,
+): Promise<ApiResponse<{ count: number }>> => {
+  try {
+    const response = await httpClient.patch<{ count: number }>(
+      "/doctorSchedule/update",
+      { scheduleIds },
+    )
+    if (!response.success) {
+      throw new Error(response.message || "Unable to update your schedules.")
+    }
+
+    return response
+  } catch (error) {
+    if (axios.isAxiosError<ApiErrorResponse>(error)) {
+      throw new Error(error.response?.data?.message || error.message)
+    }
+
+    throw error
+  }
+}
+
+export const deleteMyDoctorSchedule = async (
+  scheduleId: string,
+): Promise<ApiResponse<boolean>> => {
+  try {
+    const response = await httpClient.delete<boolean>(
+      `/doctorSchedule/${encodeURIComponent(scheduleId)}`,
+    )
+    if (!response.success) {
+      throw new Error(response.message || "Unable to remove your schedule.")
+    }
+
+    return response
+  } catch (error) {
+    if (axios.isAxiosError<ApiErrorResponse>(error)) {
+      throw new Error(error.response?.data?.message || error.message)
+    }
+
+    throw error
+  }
+}
