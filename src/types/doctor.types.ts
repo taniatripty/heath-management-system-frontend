@@ -75,6 +75,8 @@ export interface IDoctorDetails extends Omit<IDoctor, "user"> {
       startDate?: string | Date;
       startTime?: string | Date;
       endTime?: string | Date;
+      isBooked?: boolean;
+      appointment?: Array<{ id?: string | number }> | null;
     } | null;
   }>;
   reviews?: Array<{

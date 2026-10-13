@@ -12,6 +12,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card"
+import BookAppointmentDialog from "@/components/module/consultation/BookAppointmentDialog"
 import { getAllDoctors } from "@/services/doctor.services"
 import type { IDoctor } from "@/types/doctor.types"
 
@@ -83,7 +84,7 @@ const DoctorCard = ({ doctor }: { doctor: IDoctor }) => {
           </p>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex-col gap-2">
         <Button
           className="w-full"
           nativeButton={false}
@@ -92,6 +93,7 @@ const DoctorCard = ({ doctor }: { doctor: IDoctor }) => {
           View details
           <ArrowRight aria-hidden="true" />
         </Button>
+        <BookAppointmentDialog doctorId={doctor.id} doctorName={doctor.name} />
       </CardFooter>
     </Card>
   )

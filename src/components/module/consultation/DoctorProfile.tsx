@@ -22,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import BookAppointmentDialog from "@/components/module/consultation/BookAppointmentDialog"
 import { getDoctorById } from "@/services/doctor.services"
 import type { IDoctorDetails } from "@/types/doctor.types"
 
@@ -151,6 +152,13 @@ const DoctorProfileContent = ({ doctor }: { doctor: IDoctorDetails }) => {
                 ? `৳${Number(doctor.appointmentFee).toLocaleString()}`
                 : "Contact for fee"}
             </p>
+            <div className="mt-4">
+              <BookAppointmentDialog
+                doctorId={doctor.id}
+                doctorName={doctor.name}
+                schedules={doctor.doctorSchedule ?? []}
+              />
+            </div>
           </div>
         </div>
       </section>

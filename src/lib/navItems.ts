@@ -140,12 +140,12 @@ export const doctorNavItems:NavSection[]=[
         items: [
             {
                 title: "My Appointments",
-                href: "/dashboard/my-appointments",
+                href: "/dashboard/myAppointment",
                 icon: "Calendar",
             },
             {
                 title: "Book Appointment",
-                href: "/dashboard/bookAppointment",
+                href: "/dashboard/book-appointment",
                 icon: "ClipboardList",
             },
         ],
