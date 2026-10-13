@@ -22,12 +22,13 @@ import axios from "axios"
 //   return response
 // }
 
-export const getDoctors = async (queryString: string): Promise<ApiResponse<IDoctor[]>> => {
+export const getDoctors = async (
+    queryString = "",
+): Promise<ApiResponse<IDoctor[]>> => {
     try {
         const endpoint = queryString ? `/getdoctor?${queryString}` : "/getdoctor";
         const doctors = await httpClient.get<IDoctor[]>(endpoint);
 
-        // The API may return the list directly instead of wrapping it in { data }.
         if (Array.isArray(doctors)) {
             return {
                 success: true,
@@ -36,14 +37,41 @@ export const getDoctors = async (queryString: string): Promise<ApiResponse<IDoct
             };
         }
 
+        if (!doctors.success) {
+            throw new Error(doctors.message || "Unable to load doctors.");
+        }
+
         return doctors;
     } catch (error) {
-        console.log("Error fetching doctors:", error);
+        if (axios.isAxiosError<ApiErrorResponse>(error)) {
+            throw new Error(error.response?.data?.message || error.message);
+        }
+
         throw error;
     }
 }
 
-export const getDoctorById = async (id: number): Promise<ApiResponse<IDoctorDetails>> => {
+export const getAllDoctors = async (): Promise<ApiResponse<IDoctor[]>> => {
+    const firstPage = await getDoctors("page=1&limit=100");
+    const totalPages = Math.max(1, firstPage.meta?.totalPages ?? 1);
+
+    if (totalPages === 1) {
+        return firstPage;
+    }
+
+    const remainingPages = await Promise.all(
+        Array.from({ length: totalPages - 1 }, (_, index) =>
+            getDoctors(`page=${index + 2}&limit=100`),
+        ),
+    );
+
+    return {
+        ...firstPage,
+        data: [firstPage, ...remainingPages].flatMap((page) => page.data),
+    };
+}
+
+export const getDoctorById = async (id: string | number): Promise<ApiResponse<IDoctorDetails>> => {
     try {
         const response = await httpClient.get<IDoctorDetails>(
             `/getdoctor/${encodeURIComponent(String(id))}`,
@@ -125,7 +153,7 @@ export const updateDoctor = async ({
     }
 }
 
-export const deleteDoctor = async (id: number): Promise<ApiResponse<{ message: string }>> => {
+export const deleteDoctor = async (id: string | number): Promise<ApiResponse<{ message: string }>> => {
     try {
         const response = await httpClient.delete<{ message: string }>(
             `/getdoctor/${encodeURIComponent(String(id))}`,

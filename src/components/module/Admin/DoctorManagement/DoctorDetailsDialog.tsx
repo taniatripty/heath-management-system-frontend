@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 interface DoctorDetailsDialogProps {
-  doctorId: number | null
+  doctorId: string | number | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }

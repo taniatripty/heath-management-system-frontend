@@ -16,7 +16,7 @@ export interface ISpecialty {
 }
 
 export interface IDoctor {
-  id: number;
+  id: string | number;
   name: string;
   email: string;
   profilePhoto?: string;
@@ -41,7 +41,7 @@ export interface IDoctor {
   }>;
 }
 
-export interface IDoctorDetails extends IDoctor {
+export interface IDoctorDetails extends Omit<IDoctor, "user"> {
   user?: IDoctor["user"] & {
     id?: number | string;
     email?: string;
@@ -66,7 +66,12 @@ export interface IDoctorDetails extends IDoctor {
   }>;
   doctorSchedule?: Array<{
     id?: number | string;
+    scheduleId?: string;
+    isBooked?: boolean;
     schedule?: {
+      id?: string;
+      startDateTime?: string | Date;
+      endDateTime?: string | Date;
       startDate?: string | Date;
       startTime?: string | Date;
       endTime?: string | Date;
@@ -75,6 +80,7 @@ export interface IDoctorDetails extends IDoctor {
   reviews?: Array<{
     id?: number | string;
     rating?: number;
+    ratting?: number;
     comment?: string;
     createdAt?: string | Date;
   }>;
