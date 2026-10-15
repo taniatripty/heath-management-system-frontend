@@ -15,7 +15,7 @@ async function tryRefreshToken(
   refreshToken:string
 ):Promise<void>{
 
-  if(!isTokenExpiringSoon(accessToken)){
+  if(!(await isTokenExpiringSoon(accessToken))){
      return
   }
    const requestHeader = await headers();

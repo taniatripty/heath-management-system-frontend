@@ -1,5 +1,3 @@
-"use server";
-
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { setCookie } from "./cookieUtils";
 
@@ -32,13 +30,24 @@ export const setTokenInCookie = async (
   token: string,
   fallbackMaxAgeInSeconds = 60 * 60 * 24,
 ) => {
-  const maxAgeInSeconds =
-    getTokenRemainingTime(token) || fallbackMaxAgeInSeconds;
+  const maxAgeInSeconds = getTokenMaxAgeInSeconds(
+    token,
+    fallbackMaxAgeInSeconds,
+  );
   await setCookie(name, token, maxAgeInSeconds);
 };
 
-export async function isTokenExpiringSoon(token:string, thresoldInSecond=300):Promise<boolean>{
-  const remainingSeconds=getTokenRemainingTime(token)
-  return remainingSeconds>0 && remainingSeconds <=thresoldInSecond
+export function getTokenMaxAgeInSeconds(
+  token: string,
+  fallbackMaxAgeInSeconds = 60 * 60 * 24,
+): number {
+  return getTokenRemainingTime(token) || fallbackMaxAgeInSeconds;
+}
 
+export async function isTokenExpiringSoon(
+  token: string,
+  thresholdInSeconds = 300,
+): Promise<boolean> {
+  const remainingSeconds = getTokenRemainingTime(token);
+  return remainingSeconds <= thresholdInSeconds;
 }
