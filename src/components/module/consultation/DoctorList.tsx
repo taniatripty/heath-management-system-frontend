@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   ArrowLeft,
@@ -9,6 +9,7 @@ import {
   BriefcaseMedical,
   CalendarCheck2,
   Clock3,
+  Loader2,
   Search,
   ShieldCheck,
   Star,
@@ -36,6 +37,7 @@ import { getAllDoctors } from "@/services/doctor.services"
 import type { IDoctor } from "@/types/doctor.types"
 
 const PAGE_SIZES = [1, 2, 10, 20, 30, 50]
+const SEARCH_DEBOUNCE_MS = 400
 
 const getInitials = (name: string) =>
   name
@@ -153,15 +155,27 @@ const DoctorCard = ({ doctor }: { doctor: IDoctor }) => {
 
 const DoctorList = () => {
   const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const isSearching = searchTerm !== debouncedSearchTerm
   const doctorsQuery = useQuery({
     queryKey: ["doctors", "all"],
     queryFn: getAllDoctors,
   })
   const doctors = doctorsQuery.data?.data ?? []
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(
+      () => setDebouncedSearchTerm(searchTerm),
+      SEARCH_DEBOUNCE_MS,
+    )
+
+    return () => window.clearTimeout(timeoutId)
+  }, [searchTerm])
+
   const filteredDoctors = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase()
+    const normalizedSearch = debouncedSearchTerm.trim().toLowerCase()
 
     if (!normalizedSearch) {
       return doctors
@@ -181,7 +195,7 @@ const DoctorList = () => {
         detail.toLowerCase().includes(normalizedSearch),
       )
     })
-  }, [doctors, searchTerm])
+  }, [doctors, debouncedSearchTerm])
   const totalPages = Math.ceil(filteredDoctors.length / pageSize)
   const displayPageCount = Math.max(totalPages, 1)
   const pageWindowStart = Math.max(
@@ -262,10 +276,17 @@ const DoctorList = () => {
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-md">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          />
+          {isSearching ? (
+            <Loader2
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
+            />
+          ) : (
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+          )}
           <Input
             aria-label="Search doctors"
             className="h-11 rounded-xl pl-9"
@@ -277,6 +298,11 @@ const DoctorList = () => {
             type="search"
             value={searchTerm}
           />
+          {isSearching && (
+            <span className="sr-only" role="status">
+              Searching doctors
+            </span>
+          )}
         </div>
         {!doctorsQuery.isPending && !doctorsQuery.isError && (
           <p className="text-sm text-muted-foreground" aria-live="polite">
