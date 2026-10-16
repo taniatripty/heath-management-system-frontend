@@ -1,12 +1,15 @@
 "use client"
 
 import Link from "next/link"
+import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
+  ArrowLeft,
   ArrowRight,
   BriefcaseMedical,
   CalendarCheck2,
   Clock3,
+  Search,
   ShieldCheck,
   Star,
   Stethoscope,
@@ -14,6 +17,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Card,
   CardContent,
@@ -23,6 +34,8 @@ import {
 import BookAppointmentDialog from "@/components/module/consultation/BookAppointmentDialog"
 import { getAllDoctors } from "@/services/doctor.services"
 import type { IDoctor } from "@/types/doctor.types"
+
+const PAGE_SIZES = [1, 2, 10, 20, 30, 50]
 
 const getInitials = (name: string) =>
   name
@@ -139,11 +152,54 @@ const DoctorCard = ({ doctor }: { doctor: IDoctor }) => {
 }
 
 const DoctorList = () => {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const doctorsQuery = useQuery({
     queryKey: ["doctors", "all"],
     queryFn: getAllDoctors,
   })
   const doctors = doctorsQuery.data?.data ?? []
+  const filteredDoctors = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    if (!normalizedSearch) {
+      return doctors
+    }
+
+    return doctors.filter((doctor) => {
+      const searchableDetails = [
+        doctor.name,
+        doctor.designation,
+        doctor.qualification,
+        doctor.currentWorkingPlace,
+        doctor.email,
+        ...(doctor.specialties?.map(({ speciatily }) => speciatily?.title ?? "") ?? []),
+      ]
+
+      return searchableDetails.some((detail) =>
+        detail.toLowerCase().includes(normalizedSearch),
+      )
+    })
+  }, [doctors, searchTerm])
+  const totalPages = Math.ceil(filteredDoctors.length / pageSize)
+  const displayPageCount = Math.max(totalPages, 1)
+  const pageWindowStart = Math.max(
+    1,
+    Math.min(currentPage - 2, displayPageCount - 4),
+  )
+  const visiblePages = Array.from(
+    { length: Math.min(5, displayPageCount) },
+    (_, index) => pageWindowStart + index,
+  )
+  const visibleDoctors = filteredDoctors.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  )
+  const firstVisibleDoctor = filteredDoctors.length
+    ? (currentPage - 1) * pageSize + 1
+    : 0
+  const lastVisibleDoctor = Math.min(currentPage * pageSize, filteredDoctors.length)
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
@@ -204,6 +260,33 @@ const DoctorList = () => {
           </p>
         </div>
 
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-md">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            aria-label="Search doctors"
+            className="h-11 rounded-xl pl-9"
+            onChange={(event) => {
+              setSearchTerm(event.target.value)
+              setCurrentPage(1)
+            }}
+            placeholder="Search by name, specialty, or qualification"
+            type="search"
+            value={searchTerm}
+          />
+        </div>
+        {!doctorsQuery.isPending && !doctorsQuery.isError && (
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {filteredDoctors.length
+              ? `Showing ${firstVisibleDoctor}-${lastVisibleDoctor} of ${filteredDoctors.length} doctors`
+              : "No doctors found"}
+          </p>
+        )}
+      </div>
+
       {doctorsQuery.isPending ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }, (_, index) => (
@@ -229,15 +312,132 @@ const DoctorList = () => {
             Try again
           </Button>
         </div>
-      ) : doctors.length ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {doctors.map((doctor) => (
-            <DoctorCard key={doctor.id} doctor={doctor} />
-          ))}
-        </div>
+      ) : visibleDoctors.length ? (
+        <>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {visibleDoctors.map((doctor) => (
+              <DoctorCard key={doctor.id} doctor={doctor} />
+            ))}
+          </div>
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+            <div className="flex items-center gap-2">
+              <span id="consultation-rows-per-page-label" className="text-sm text-muted-foreground">
+                Rows per page
+              </span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(value) => {
+                  if (typeof value === "string") {
+                    setPageSize(Number(value))
+                    setCurrentPage(1)
+                  }
+                }}
+              >
+                <SelectTrigger
+                  aria-labelledby="consultation-rows-per-page-label"
+                  className="w-20"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZES.map((size) => (
+                    <SelectItem key={size} value={String(size)}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <nav
+              aria-label="Doctor list pagination"
+              className="flex flex-wrap items-center justify-end gap-2"
+            >
+              <span aria-live="polite" className="mr-1 text-sm text-muted-foreground">
+                Page {currentPage} of {displayPageCount}
+              </span>
+              <span className="mr-1 text-sm text-muted-foreground">
+                Total pages: {totalPages} · Total items: {filteredDoctors.length}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                aria-label="Go to previous page"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((page) => page - 1)}
+                variant="outline"
+              >
+                <ArrowLeft aria-hidden="true" />
+                Previous
+              </Button>
+              {pageWindowStart > 1 && (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentPage(1)}
+                    aria-label="Go to page 1"
+                  >
+                    1
+                  </Button>
+                  {pageWindowStart > 2 && (
+                    <span className="text-sm text-muted-foreground" aria-hidden="true">
+                      …
+                    </span>
+                  )}
+                </>
+              )}
+              {visiblePages.map((page) => (
+                <Button
+                  key={page}
+                  type="button"
+                  size="sm"
+                  variant={currentPage === page ? "default" : "outline"}
+                  onClick={() => setCurrentPage(page)}
+                  aria-label={`Go to page ${page}`}
+                  aria-current={currentPage === page ? "page" : undefined}
+                >
+                  {page}
+                </Button>
+              ))}
+              {visiblePages[visiblePages.length - 1] < displayPageCount && (
+                <>
+                  {visiblePages[visiblePages.length - 1] < displayPageCount - 1 && (
+                    <span className="text-sm text-muted-foreground" aria-hidden="true">
+                      …
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentPage(displayPageCount)}
+                    aria-label={`Go to page ${displayPageCount}`}
+                  >
+                    {displayPageCount}
+                  </Button>
+                </>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                aria-label="Go to next page"
+                disabled={currentPage === displayPageCount}
+                onClick={() => setCurrentPage((page) => page + 1)}
+                variant="outline"
+              >
+                Next
+                <ArrowRight aria-hidden="true" />
+              </Button>
+            </nav>
+          </div>
+        </>
       ) : (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-10 text-center text-muted-foreground dark:bg-muted/30">
-          No doctors are available right now.
+          {doctors.length
+            ? "No doctors match your search. Try a different name, specialty, or qualification."
+            : "No doctors are available right now."}
         </p>
       )}
       </section>
